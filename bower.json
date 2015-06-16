@@ -1,0 +1,25 @@
+{
+  "name": "brukerconverter",
+  "version": "2.0.1",
+  "homepage": "https://github.com/cheminfo/brukerconverter",
+  "description": "Parse and convert Burker raw data",
+  "main": "build/brukerconverter.js",
+  "moduleType": [
+    "amd",
+    "globals",
+    "node"
+  ],
+  "keywords": [
+    "jcamp",
+    "bruker",
+    "converter"
+  ],
+  "license": "MIT",
+  "ignore": [
+    ".idea",
+    "test",
+    "src",
+    "node_modules",
+    "Gruntfile.js"
+  ]
+}
