@@ -21,7 +21,6 @@ function getConverter() {
     /*
      options.keepSpectra: keep the original spectra for a 2D
      */
-
     function convert(jcamp, options) {
         options = options || {};
         var start = new Date();
