@@ -1,9 +1,6 @@
 "use strict";
 
-module.exports = {
-    convert: convert,
-    parseData: parseData
-};
+module.exports = convert;
 
 function convert(brukerFiles) {
     if(brukerFiles['ser'] || brukerFiles['2rr']) {
@@ -15,7 +12,71 @@ function convert(brukerFiles) {
     }
 }
 
-function parseData(file, options) {
+function convert1D(files) {
+    if(files['1r'] || files['1i']) {
+        var result = parseData(files['procs']);
+        if(files['1r']) {
+            setXYSpectrumData(files['1r'], result, '1r', true);
+        }
+        if(files['1r']) {
+            setXYSpectrumData(files['1i'], result, '1i', false);
+        }
+    } else if(files['fid']) {
+        result = parseData(files['pdata/1/procs']);
+        parseData(files['acqus'], result);
+        setXYSpectrumData(files['fid'], result, 'fid', true)
+    }
+    return result;
+}
+
+function convert2D(files) {
+
+}
+
+function setXYSpectrumData(file, spectra, store, real) {
+    var td = spectra['$SI'] = parseInt(spectra['$SI']);
+
+    spectra.dataType = "TYPE_NMR_SPECTRUM";
+    spectra.dataClass = "DATACLASS_XY";
+
+    var SW_p = parseFloat(file["$SWp"]);
+    var SF = parseFloat(file["$SF"]);
+    var BF = parseFloat(file["$BF1"]);
+    var offset = parseFloat(file["$OFFSET"]);
+
+    spectra.firstX = offset;
+    spectra.lastX = offset - SW_p / SF;
+
+    spectra["observeFrequency"] = SF;
+    spectra["$BF1"] = BF;
+    spectra["$SF01"] = SF;
+    spectra.brukerReference = BF;
+
+    var endian = parseInt(spectra["$BYTORDP"]);
+    endian = endian ? 0 : 1;
+    spectra.XUnits = "PPM";
+    spectra.YUnits = "Arbitrary";
+    spectra[store] = new Array(td);
+
+    var read;
+    if(endian) {
+        read = file.readInt32LE;
+    } else {
+        read = file.readInt32BE;
+    }
+
+    if(real) {
+        for(var i = 0; i < td - 1; ++i) {
+            spectra[store][i] = file.readUInt32LE(i * 4, 4);// TODO: support big endian
+        }
+    } else {
+        for(i = td - 1; i > 0; --i) {
+            spectra[store][i] = file.readUInt32LE(i * 4, 4); // TODO: support big endian
+        }
+    }
+}
+
+function parseData(file, currentResult, options) {
     options = options || {};
     var start = new Date();
 
@@ -26,7 +87,7 @@ function parseData(file, options) {
         ldrs,
         i, ii, position, endLine, infos;
 
-    var result = {};
+    var result = currentResult ? currentResult : {};
     result.profiling = [];
     result.logs = [];
     var spectra = [];
@@ -44,9 +105,13 @@ function parseData(file, options) {
     if (result.profiling) result.profiling.push({action: "Split to LDRS", time: new Date() - start});
 
     if (ldrs[0]) ldrs[0] = ldrs[0].replace(/^[\r\n ]*##/, "");
+    //console.log(ldrs);
 
     for (i = 0, ii = ldrs.length; i < ii; i++) {
         ldr = ldrs[i];
+        if(ldr.substr(0, 2) === '$$') {
+            continue;
+        }
         // This is a new LDR
         position = ldr.indexOf("=");
         if (position > 0) {
@@ -63,10 +128,3 @@ function parseData(file, options) {
     return result;
 }
 
-function convert2D(files) {
-
-}
-
-function convert1D(files) {
-    var outSpectra
-}
