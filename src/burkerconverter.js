@@ -680,7 +680,7 @@ function postToWorker(input, options) {
 
 function createWorker() {
     var workerURL = URL.createObjectURL(new Blob([
-        'var getConverter =' + getConverter.toString() + ';var convert = getConverter(); onmessage = function (event) { postMessage({stamp: event.data.stamp, output: convert(event.data.input, event.data.options)}); };'
+        'var getConverter =' + getConverter.toString() + ';var parseData = getConverter(); onmessage = function (event) { postMessage({stamp: event.data.stamp, output: parseData(event.data.input, event.data.options)}); };'
     ], { type: 'application/javascript' }));
     worker = new Worker(workerURL);
     URL.revokeObjectURL(workerURL);
