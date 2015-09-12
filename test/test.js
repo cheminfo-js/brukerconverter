@@ -12,10 +12,6 @@ describe("Bruker converter test", function () {
 
         var result = convert(bruker);
 
-        //fs.closeSync(bruker['procs']);
-        //fs.closeSync(bruker['1r']);
-        //fs.closeSync(bruker['1i']);
-
         result['1r'].length.should.be.equal(result['$SI']);
         result['1i'].length.should.be.equal(result['$SI']);
         result.should.have.properties([

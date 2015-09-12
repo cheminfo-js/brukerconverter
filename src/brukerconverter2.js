@@ -60,18 +60,22 @@ function setXYSpectrumData(file, spectra, store, real) {
 
     var read;
     if(endian) {
-        read = file.readInt32LE;
+        read = function (index) {
+            return file.readInt32LE(index * 4, 4)
+        };
     } else {
-        read = file.readInt32BE;
+        read = function (index) {
+            return file.readInt32BE(index * 4, 4)
+        };
     }
 
     if(real) {
         for(var i = 0; i < td - 1; ++i) {
-            spectra[store][i] = file.readUInt32LE(i * 4, 4);// TODO: support big endian
+            spectra[store][i] = read(i);
         }
     } else {
         for(i = td - 1; i > 0; --i) {
-            spectra[store][i] = file.readUInt32LE(i * 4, 4); // TODO: support big endian
+            spectra[store][i] = read(i);
         }
     }
 }
