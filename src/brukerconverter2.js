@@ -32,36 +32,32 @@ function convert1D(files) {
 function convert2D(files) {
     var result = {};
     var temp = {};
-    if(files['ser']) {
-        parseData(files['ser'], result);
-        parseData(files['acqu2s'], temp);
-    } else if(files['2rr']) {
-        parseData(files['2rr'], result);
+    if(files['2rr']) {
+        parseData(files['procs'], result);
         parseData(files['proc2s'], temp);
+    } else if(files['ser']) {
+        parseData(files['acqus'], result);
+        parseData(files['acqu2s'], temp);
     }
 
-    var nbSubSpectra = temp['$SI'] = parseInt(temp['$SI']);
-    var SW_p = temp['$SWp'] = parseFloat(temp['$SWp']);
+    result.nbSubSpectra = temp['$SI'] = parseInt(temp['$SI']);
+    var SW_p = temp['$SWP'] = parseFloat(temp['$SWP']);
     var SF = temp['$SF'] = parseFloat(temp['$SF']);
     var offset = temp['$OFFSET'] = parseFloat(temp['$OFFSET']);
 
     result.firstY = offset;
-    result.lastY = offset - SW_p/SF;
+    result.lastY = offset - SW_p / SF;
     result['$BF2'] = SF;
     result['$SF01'] = SF;
 
-    if(files['ser']) {
-        setXYSpectrumData(files['ser'], result, 'ser', true);
-        result.setYUnits = 'HZ';
-        result.dataType = 'TYPE_2DNMR_FID';
-    } else if(files['2rr']) {
+    if(files['2rr']) {
         setXYSpectrumData(files['2rr'], result, '2rr', true);
         result.setYUnits = 'PPM';
         result.dataType = 'TYPE_2DNMR_SPECTRUM';
-    }
-
-    for(var i = 0; i < nbSubSpectra; ++i) {
-        // TODO: go through all 2xx spectra?
+    } else if(files['ser']) {
+        setXYSpectrumData(files['ser'], result, 'ser', true);
+        result.setYUnits = 'HZ';
+        result.dataType = 'TYPE_2DNMR_FID';
     }
 
     // TODO: set active spectra?
@@ -98,7 +94,9 @@ function setXYSpectrumData(file, spectra, store, real) {
     endian = endian ? 0 : 1;
     spectra.XUnits = "PPM";
     spectra.YUnits = "Arbitrary";
-    spectra[store] = new Array(td);
+
+    // number of spectras
+    var nbSubSpectra = spectra.nbSubSpectra ? spectra.nbSubSpectra : 1;
 
     var read;
     if(endian) {
@@ -111,14 +109,24 @@ function setXYSpectrumData(file, spectra, store, real) {
         };
     }
 
-    if(real) {
-        for(var i = 0; i < td - 1; ++i) {
-            spectra[store][i] = read(i);
+    spectra["data" + store] = new Array(nbSubSpectra);
+    for(var i = 0; i < nbSubSpectra; ++i) {
+        var currentSpectra = i * td;
+        var limit = currentSpectra + td - 1;
+        spectra["data" + store][i] = new Array(td);
+        if(real) {
+            for(var j = currentSpectra, k = 0; j < limit; ++j, ++k) {
+                spectra["data" + store][i][k] = read(j);
+            }
+        } else {
+            for(j = limit, k = 0; j > currentSpectra; --j, ++k) {
+                spectra["data" + store][i][k] = read(j);
+            }
         }
-    } else {
-        for(i = td - 1; i > 0; --i) {
-            spectra[store][i] = read(i);
-        }
+    }
+
+    if(nbSubSpectra === 1) {
+        spectra["data" + store] = spectra["data" + store][0];
     }
 }
 
@@ -154,7 +162,7 @@ function parseData(file, currentResult, options) {
     //console.log(ldrs);
 
     for (i = 0, ii = ldrs.length; i < ii; i++) {
-        ldr = ldrs[i];
+        ldr = ldrs[i].split(/[\r\n\t]+\$\$/)[0];
         if(ldr.substr(0, 2) === '$$') {
             continue;
         }
