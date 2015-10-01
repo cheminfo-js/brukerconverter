@@ -206,4 +206,3 @@ function setFIDSpectrumData(file, spectra, real) {
 
     // TODO: which two spectras I have to read?
 }
-

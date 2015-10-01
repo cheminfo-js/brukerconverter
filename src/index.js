@@ -1,1 +1,1 @@
-module.exports = require('./brukerconverter2');
+module.exports = require('./brukerconverter');
