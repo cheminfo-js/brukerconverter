@@ -1,5 +1,8 @@
 "use strict";
 
+var Converter = require("jcampconverter");
+var Buffer = require("iobuffer").InputBuffer;
+
 module.exports = convert;
 
 function convert(brukerFiles) {
@@ -14,30 +17,30 @@ function convert(brukerFiles) {
 
 function convert1D(files) {
     if(files['1r'] || files['1i']) {
-        var result = parseData(files['procs']);
+        var result = parseData(files["procs"]);
+
         if(files['1r']) {
             setXYSpectrumData(files['1r'], result, '1r', true);
         }
-        if(files['1r']) {
+        if(files['1i']) {
             setXYSpectrumData(files['1i'], result, '1i', false);
         }
     } else if(files['fid']) {
+        // TODO: check update result
         result = parseData(files['pdata/1/procs']);
-        parseData(files['acqus'], result);
+        result = parseData(files['acqus']);
         setFIDSpectrumData(files['fid'], result, true)
     }
     return result;
 }
 
 function convert2D(files) {
-    var result = {};
-    var temp = {};
     if(files['2rr']) {
-        parseData(files['procs'], result);
-        parseData(files['proc2s'], temp);
+        var result = parseData(files['procs']);
+        var temp = parseData(files['proc2s']);
     } else if(files['ser']) {
-        parseData(files['acqus'], result);
-        parseData(files['acqu2s'], temp);
+        result = parseData(files['acqus']);
+        temp = parseData(files['acqu2s']);
     }
 
     result.nbSubSpectra = temp['$SI'] = parseInt(temp['$SI']);
@@ -98,16 +101,10 @@ function setXYSpectrumData(file, spectra, store, real) {
     // number of spectras
     var nbSubSpectra = spectra.nbSubSpectra ? spectra.nbSubSpectra : 1;
 
-    var read;
-    if(endian) {
-        read = function (index) {
-            return file.readInt32LE(index * 4, 4);
-        };
-    } else {
-        read = function (index) {
-            return file.readInt32BE(index * 4, 4);
-        };
-    }
+    if(endian)
+        file.setLittleEndian();
+    else
+        file.setBigEndian();
 
     spectra["data" + store] = new Array(nbSubSpectra);
     for(var i = 0; i < nbSubSpectra; ++i) {
@@ -116,11 +113,11 @@ function setXYSpectrumData(file, spectra, store, real) {
         spectra["data" + store][i] = new Array(td);
         if(real) {
             for(var j = currentSpectra, k = 0; j < limit; ++j, ++k) {
-                spectra["data" + store][i][k] = read(j);
+                spectra["data" + store][i][k] = file.readInt32();
             }
         } else {
             for(j = limit, k = 0; j > currentSpectra; --j, ++k) {
-                spectra["data" + store][i][k] = read(j);
+                spectra["data" + store][i][k] = file.readInt32();
             }
         }
     }
@@ -130,56 +127,10 @@ function setXYSpectrumData(file, spectra, store, real) {
     }
 }
 
-function parseData(file, currentResult, options) {
-    options = options || {};
-    var start = new Date();
-
-    var ntuples = {},
-        ldr,
-        dataLabel,
-        dataValue,
-        ldrs,
-        i, ii, position, endLine, infos;
-
-    var result = currentResult ? currentResult : {};
-    result.profiling = [];
-    result.logs = [];
-    var spectra = [];
-    result.spectra = spectra;
-    result.info = {};
-    var spectrum = {};
-
-    if (!(typeof file == "string")) return result;
-    // console.time("start");
-
-    if (result.profiling) result.profiling.push({action: "Before split to LDRS", time: new Date() - start});
-
-    ldrs = file.split(/[\r\n]+##/);
-
-    if (result.profiling) result.profiling.push({action: "Split to LDRS", time: new Date() - start});
-
-    if (ldrs[0]) ldrs[0] = ldrs[0].replace(/^[\r\n ]*##/, "");
-    //console.log(ldrs);
-
-    for (i = 0, ii = ldrs.length; i < ii; i++) {
-        ldr = ldrs[i].split(/[\r\n\t]+\$\$/)[0];
-        if(ldr.substr(0, 2) === '$$') {
-            continue;
-        }
-        // This is a new LDR
-        position = ldr.indexOf("=");
-        if (position > 0) {
-            dataLabel = ldr.substring(0, position);
-            dataValue = ldr.substring(position + 1).trim();
-        } else {
-            dataLabel = ldr;
-            dataValue = "";
-        }
-        dataLabel = dataLabel.replace(/[_ -]/g, '').toUpperCase();
-        result[dataLabel] = dataValue;
-    }
-
-    return result;
+function parseData(file) {
+    return Converter.convert(file, {
+        keepRecordsRegExp:/.*/
+    }).info;
 }
 
 function setFIDSpectrumData(file, spectra, real) {

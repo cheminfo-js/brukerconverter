@@ -24,5 +24,9 @@
     "mocha-better-spec-reporter": "latest",
     "mocha": "^1.21.5",
     "should": "^4.1.0"
+  },
+  "dependencies": {
+    "iobuffer": "^1.0.4",
+    "jcampconverter": "^2.1.0"
   }
 }
