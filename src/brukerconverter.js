@@ -29,7 +29,7 @@ function convert1D(files) {
         // TODO: check update result
         result = parseData(files['pdata/1/procs']);
         result = parseData(files['acqus']);
-        setFIDSpectrumData(files['fid'], result, true)
+        setFIDSpectrumData(files['fid'], result)
     }
     return result;
 }
@@ -37,123 +37,154 @@ function convert1D(files) {
 function convert2D(files) {
     if(files['2rr']) {
         var result = parseData(files['procs']);
+        console.log(result);
         var temp = parseData(files['proc2s']);
     } else if(files['ser']) {
         result = parseData(files['acqus']);
         temp = parseData(files['acqu2s']);
     }
 
-    result.nbSubSpectra = temp['$SI'] = parseInt(temp['$SI']);
-    var SW_p = temp['$SWP'] = parseFloat(temp['$SWP']);
-    var SF = temp['$SF'] = parseFloat(temp['$SF']);
-    var offset = temp['$OFFSET'] = parseFloat(temp['$OFFSET']);
+    result.info.nbSubSpectra = temp.info['$SI'] = parseInt(temp.info['$SI']);
+    var SW_p = temp.info['$SWP'] = parseFloat(temp.info['$SWP']);
+    var SF = temp.info['$SF'] = parseFloat(temp.info['$SF']);
+    var offset = temp.info['$OFFSET'] = parseFloat(temp.info['$OFFSET']);
 
     result.firstY = offset;
     result.lastY = offset - SW_p / SF;
-    result['$BF2'] = SF;
-    result['$SF01'] = SF;
+    result.info['$BF2'] = SF;
+    result.info['$SF01'] = SF;
 
     if(files['2rr']) {
         setXYSpectrumData(files['2rr'], result, '2rr', true);
-        result.setYUnits = 'PPM';
-        result.dataType = 'TYPE_2DNMR_SPECTRUM';
+        result.spectra[0].setYUnits = 'PPM';
     } else if(files['ser']) {
         setXYSpectrumData(files['ser'], result, 'ser', true);
-        result.setYUnits = 'HZ';
-        result.dataType = 'TYPE_2DNMR_FID';
+        result.spectra[0].setYUnits = 'HZ';
     }
 
-    // TODO: set active spectra?
-    result['2D_Y_NUCLEUS'] = temp['$AXNUC'];
-    result['2D_X_NUCLEUS'] = result['$AXNUC'];
-    result['2D_Y_FRECUENCY'] = SF;
-    result['2D_Y_OFFSET'] = offset;
-    result['2D_X_FRECUENCY'] = result['$SF'];
-    result['2D_X_OFFSET'] = result['$OFFSET'];
+    var dataType = files['ser'] ? 'TYPE_2DNMR_FID' : 'TYPE_2DNMR_SPECTRUM';
+    for(var i = 0; i < result.spectra.length; ++i) {
+        result.spectra[i].dataType = dataType;
+    }
+
+    result.info['2D_Y_NUCLEUS'] = temp.info['$AXNUC'];
+    result.info['2D_X_NUCLEUS'] = result.info['$AXNUC'];
+    result.info['2D_Y_FRECUENCY'] = SF;
+    result.info['2D_Y_OFFSET'] = offset;
+    result.info['2D_X_FRECUENCY'] = result.info['$SF'];
+    result.info['2D_X_OFFSET'] = result.info['$OFFSET'];
 
     return result;
 }
 
 function setXYSpectrumData(file, spectra, store, real) {
-    var td = spectra['$SI'] = parseInt(spectra['$SI']);
+    var td = spectra.info['$SI'] = parseInt(spectra.info['$SI']);
 
-    spectra.dataType = "TYPE_NMR_SPECTRUM";
-    spectra.dataClass = "DATACLASS_XY";
+    var SW_p = parseFloat(spectra.info["$SWP"]);
+    var SF = parseFloat(spectra.info["$SF"]);
+    var BF = parseFloat(spectra.info["$BF1"]);
+    var offset = parseFloat(spectra.info["$OFFSET"]);
 
-    var SW_p = parseFloat(file["$SWp"]);
-    var SF = parseFloat(file["$SF"]);
-    var BF = parseFloat(file["$BF1"]);
-    var offset = parseFloat(file["$OFFSET"]);
+    spectra.info["observeFrequency"] = SF;
+    spectra.info["$BF1"] = BF;
+    spectra.info["$SF01"] = SF;
+    spectra.info.brukerReference = BF;
 
-    spectra.firstX = offset;
-    spectra.lastX = offset - SW_p / SF;
-
-    spectra["observeFrequency"] = SF;
-    spectra["$BF1"] = BF;
-    spectra["$SF01"] = SF;
-    spectra.brukerReference = BF;
-
-    var endian = parseInt(spectra["$BYTORDP"]);
+    var endian = parseInt(spectra.info["$BYTORDP"]);
     endian = endian ? 0 : 1;
-    spectra.XUnits = "PPM";
-    spectra.YUnits = "Arbitrary";
 
     // number of spectras
-    var nbSubSpectra = spectra.nbSubSpectra ? spectra.nbSubSpectra : 1;
+    var nbSubSpectra = spectra.info.nbSubSpectra ? spectra.info.nbSubSpectra : 1;
 
     if(endian)
         file.setLittleEndian();
     else
         file.setBigEndian();
 
-    spectra["data" + store] = new Array(nbSubSpectra);
+    //spectra.spectra = new Array(nbSubSpectra);
     for(var i = 0; i < nbSubSpectra; ++i) {
+        var toSave = {};
+
+        // common parameters
+        toSave.DataType = "TYPE_NMR_SPECTRUM";
+        toSave.DataClass = "DATACLASS_XY";
+
+        toSave.FirstX = offset;
+        toSave.LastX = offset - SW_p / SF;
+
+        toSave.XUnits = "PPM";
+        toSave.YUnits = "Arbitrary";
+
         var currentSpectra = i * td;
         var limit = currentSpectra + td - 1;
-        spectra["data" + store][i] = new Array(td);
+        toSave.X = new Array(td);
+        toSave.Y = new Array(td);
         if(real) {
-            for(var j = currentSpectra, k = 0; j < limit; ++j, ++k) {
-                spectra["data" + store][i][k] = file.readInt32();
+            for(var k = 0; k < td - 1; ++k) {
+                toSave.Y[k] = file.readInt32();
             }
         } else {
-            for(j = limit, k = 0; j > currentSpectra; --j, ++k) {
-                spectra["data" + store][i][k] = file.readInt32();
+            for(k = td - 1; k > 0;--k) {
+                toSave.Y[k] = file.readInt32();
             }
         }
-    }
-
-    if(nbSubSpectra === 1) {
-        spectra["data" + store] = spectra["data" + store][0];
+        spectra.spectra.push(toSave);
     }
 }
 
 function parseData(file) {
     return Converter.convert(file, {
         keepRecordsRegExp:/.*/
-    }).info;
+    });
 }
 
-function setFIDSpectrumData(file, spectra, real) {
-    var td = spectra['$TD'] = parseInt(spectra['$TD']);
-    var SW_p = spectra['$SWP'] = parseFloat(spectra['$SWP']);
+function setFIDSpectrumData(file, spectra) {
+    var td = spectra.info['$TD'] = parseInt(spectra.info['$TD']);
+    var SW_p = spectra.info['$SWP'] = parseFloat(spectra.info['$SWP']);
     if(SW_p !== 0) {
-        spectra['$SWH'] = SW_p;
+        spectra.info['$SWH'] = SW_p;
     }
-    var SW_h = spectra['$SWH'] = parseFloat(spectra['$SWH']);
+    var SW_h = spectra.info['$SWH'] = parseFloat(spectra.info['$SWH']);
 
-    var SF = spectra['$SF01'] = parseFloat(spectra['$SF01']);
-    var BF = spectra['$BF1'] = parseFloat(spectra['$BF1']);
+    var SF = spectra.info['$SF01'] = parseFloat(spectra.info['$SF01']);
+    var BF = spectra.info['$BF1'] = parseFloat(spectra.info['$BF1']);
 
-    spectra['$SF'] = parseFloat(spectra['$SF']);
-    if(spectra['$SF'] !== 0) {
-        BF = spectra['$SF'];
+    spectra.info['$SF'] = parseFloat(spectra.info['$SF']);
+    if(spectra.info['$SF'] !== 0) {
+        BF = spectra.info['$SF'];
     }
 
     var DW = 1 / (2 * SW_h);
     var AQ = td * DW;
 
-    var endian = parseInt(spectra["$BYTORDP"]);
+    var endian = parseInt(spectra.info["$BYTORDP"]);
     endian = endian ? 0 : 1;
 
-    // TODO: which two spectras I have to read?
+    if(endian)
+        file.setLittleEndian();
+    else
+        file.setBigEndian();
+
+    for(var i = 0; i < 2; ++i) {
+        var toSave = {};
+        toSave.DataType = "TYPE_NMR_FID";
+        toSave.DataClass = "DATACLASS_XY";
+        toSave.NbPoints = td;
+        toSave.FirstX = 0;
+        toSave.LastX = AQ;
+        toSave.Nucleus = spectra.info["$NUC1"] ? spectra.info["$NUC1"] : undefined;
+        toSave.XUnits = "Hz";
+        toSave.YUnits = "Arbitrary";
+
+        toSave.X = new Array(td);
+        toSave.Y = new Array(td);
+
+        spectra.spectra.push(toSave);
+    }
+
+
+    for(i = 0; i < td; ++i) {
+        spectra.spectra[0].Y[i] = file.readInt32();
+        spectra.spectra[1].Y[i] = file.readInt32();
+    }
 }
