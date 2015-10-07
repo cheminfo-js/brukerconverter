@@ -6,26 +6,57 @@ var Buffer = require("iobuffer").InputBuffer;
 
 describe("Bruker converter test", function () {
     describe("Convert 1D", function() {
-        var bruker = {};
+
         it("Main test", function () {
+            var bruker = {};
             bruker['procs'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/procs', 'utf8');
             bruker['1r'] = new Buffer(fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/1r'));
             bruker['1i'] = new Buffer(fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/1i'));
 
             var result = convert(bruker);
 
-            result['data1r'].length.should.be.equal(result['$SI']);
-            result['data1i'].length.should.be.equal(result['$SI']);
-            result.should.have.properties([
+            result.spectra[0].Y.length.should.be.equal(result.info['$SI']);
+            result.spectra[1].Y.length.should.be.equal(result.info['$SI']);
+            result.info.should.have.properties([
                 'JCAMPDX',
                 'ORIGIN',
                 'OWNER'
             ]);
-            result.JCAMPDX.should.be.equal('5.0');
+            result.info.JCAMPDX.should.be.equal('5.0');
+            // TODO: check X values
         });
 
         it("FID spectra", function () {
-            // TODO: check with FID spectra
+            var bruker = {};
+            bruker['/pdata/1/procs'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/pdata/1/procs', 'utf8');
+            bruker['acqus'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/acqus', 'utf8');
+            bruker['fid'] = new Buffer(fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/fid'));
+
+            var result = convert(bruker);
+
+            result.spectra.length.should.be.equal(2);
+            result.info.should.have.properties([
+                'JCAMPDX',
+                'ORIGIN',
+                'OWNER'
+            ]);
+
+            var len = result.spectra[0].NbPoints;
+
+            result.spectra[0].Y[len - 1].should.be.a.NUMBER;
+            result.spectra[1].Y[len - 1].should.be.a.NUMBER;
+            result.spectra[0].should.have.properties([
+                'DataType',
+                'DataClass',
+                'XUnits',
+                'YUnits',
+                'X',
+                'Y',
+                'NbPoints',
+                'Nucleus',
+                'FirstX',
+                'LastX'
+            ]);
         });
     });
 
@@ -42,17 +73,25 @@ describe("Bruker converter test", function () {
 
             var result = convert(bruker);
 
-            result['data2rr'].length.should.be.equal(result.nbSubSpectra);
-            result['data2rr'][0].length.should.be.equal(result["$SI"]);
-            result['data2rr'][1023][4].should.be.a.Number;
+            result.spectra.length.should.be.equal(result.info.nbSubSpectra);
+            result.spectra[1023].Y.length.should.be.equal(result.info["$SI"]);
+            result.spectra[1023].Y[4].should.be.a.Number;
 
-            // TODO: check comments
-            //result["OWNER"].should.be.equal("nmr");
-
-            result.should.have.properties([
+            result.info.should.have.properties([
                 'JCAMPDX',
                 'ORIGIN',
                 'OWNER'
+            ]);
+
+            result.spectra[1023].should.have.properties([
+                'DataType',
+                'DataClass',
+                'FirstX',
+                'LastX',
+                'XUnits',
+                'YUnits',
+                'X',
+                'Y'
             ]);
         });
     });
