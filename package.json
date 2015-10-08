@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "iobuffer": "^1.0.4",
-    "jcampconverter": "^2.1.0"
+    "jcampconverter": "^2.1.0",
+    "jszip": "^2.5.0"
   }
 }

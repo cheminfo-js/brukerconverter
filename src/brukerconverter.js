@@ -2,8 +2,63 @@
 
 var Converter = require("jcampconverter");
 var Buffer = require("iobuffer").InputBuffer;
+var JSZip = require("jszip");
 
-module.exports = convert;
+// constants
+var BINARY = 1;
+var TEXT = 2;
+
+module.exports =  {
+    convert: readZIP,
+    test: convert
+};
+
+function readZIP(zipFile) {
+    var zip = new JSZip(zipFile);
+
+    var files = {
+        'ser': BINARY,
+        'fid': BINARY,
+        'acqus': TEXT,
+        'acqu2s': TEXT,
+        'pdata/1/procs': TEXT,
+        'pdata/1/proc2s': TEXT,
+        'pdata/1/1r': BINARY,
+        'pdata/1/1i': BINARY,
+        'pdata/1/2rr': BINARY
+    };
+
+    var folders = zip.filter(function (relativePath, file) {
+        if(/^\d+$/.test(relativePath.substr(0, relativePath.length - 1)))
+            return true
+    });
+
+    var spectra = new Array(folders.length);
+
+    for(var i = 0; i < folders.length; ++i) {
+        var len = folders[i].name.length;
+        var currFolder = zip.folder(folders[i].name.substr(0, len - 1));
+        var currFiles = currFolder.filter(function (relativePath, file) {
+            return files[relativePath] ? true : false;
+        });
+
+        var brukerFiles = {};
+
+        for(var j = 0; j < currFiles.length; ++j) {
+            var idx = currFiles[j].name.lastIndexOf('/');
+            var name = currFiles[j].name.substr(idx + 1);
+            if(files[name] === BINARY || files['pdata/1/' + name] === BINARY) {
+                brukerFiles[name] = new Buffer(currFiles[j].asArrayBuffer());
+            } else {
+                brukerFiles[name] = currFiles[j].asText();
+            }
+        }
+
+        spectra[i] = convert(brukerFiles);
+    }
+
+    return spectra;
+}
 
 function convert(brukerFiles) {
     if(brukerFiles['ser'] || brukerFiles['2rr']) {
@@ -26,8 +81,7 @@ function convert1D(files) {
             setXYSpectrumData(files['1i'], result, '1i', false);
         }
     } else if(files['fid']) {
-        // TODO: check update result
-        result = parseData(files['/pdata/1/procs']);
+        result = parseData(files['procs']);
         var temp = parseData(files['acqus']);
 
         var keys = Object.keys(temp.info);
@@ -103,6 +157,9 @@ function setXYSpectrumData(file, spectra, store, real) {
 
     // number of spectras
     var nbSubSpectra = spectra.info.nbSubSpectra ? spectra.info.nbSubSpectra : 1;
+
+    //console.log(file);
+    //console.log("");
 
     if(endian)
         file.setLittleEndian();

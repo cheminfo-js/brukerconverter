@@ -1,8 +1,10 @@
 "use strict";
 
-var convert = require("..");
+var convert = require("..").test;
 var fs = require('fs');
 var Buffer = require("iobuffer").InputBuffer;
+var JSZip = require("jszip");
+var convertZIP = require("..");
 
 describe("Bruker converter test", function () {
     describe("Convert 1D", function() {
@@ -28,7 +30,7 @@ describe("Bruker converter test", function () {
 
         it("FID spectra", function () {
             var bruker = {};
-            bruker['/pdata/1/procs'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/pdata/1/procs', 'utf8');
+            bruker['procs'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/pdata/1/procs', 'utf8');
             bruker['acqus'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/acqus', 'utf8');
             bruker['fid'] = new Buffer(fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/fid'));
 
@@ -93,6 +95,14 @@ describe("Bruker converter test", function () {
                 'X',
                 'Y'
             ]);
+        });
+    });
+
+    describe('Test with zip file', function() {
+        it.only('Main test', function () {
+            var zip  = fs.readFileSync("/home/jefferson/WebstormProjects/brukerconverter/test/zip/hrva034.zip");
+            var result = convertZIP(zip);
+            result.length.should.be.equal(5);
         });
     });
 });
