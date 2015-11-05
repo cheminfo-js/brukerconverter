@@ -11,9 +11,9 @@ describe("Bruker converter test", function () {
 
         it("Main test", function () {
             var bruker = {};
-            bruker['procs'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/procs', 'utf8');
-            bruker['1r'] = new Buffer(fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/1r'));
-            bruker['1i'] = new Buffer(fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/1i'));
+            bruker['procs'] = fs.readFileSync('test/1D/procs', 'utf8');
+            bruker['1r'] = new Buffer(fs.readFileSync('test/1D/1r'));
+            bruker['1i'] = new Buffer(fs.readFileSync('test/1D/1i'));
 
             var result = convert(bruker);
 
@@ -30,9 +30,9 @@ describe("Bruker converter test", function () {
 
         it("FID spectra", function () {
             var bruker = {};
-            bruker['procs'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/pdata/1/procs', 'utf8');
-            bruker['acqus'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/acqus', 'utf8');
-            bruker['fid'] = new Buffer(fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/1D/fid'));
+            bruker['procs'] = fs.readFileSync('test/1D/pdata/1/procs', 'utf8');
+            bruker['acqus'] = fs.readFileSync('test/1D/acqus', 'utf8');
+            bruker['fid'] = new Buffer(fs.readFileSync('test/1D/fid'));
 
             var result = convert(bruker);
 
@@ -66,12 +66,12 @@ describe("Bruker converter test", function () {
     describe("Convert 2D", function() {
         var bruker = {};
         it("Test with 2rr", function() {
-            bruker['procs'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/2D/procs', 'utf8');
-            bruker['proc2s'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/2D/proc2s', 'utf8');
-            bruker['acqus'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/2D/acqus', 'utf8');
-            bruker['acqu2s'] = fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/2D/acqu2s', 'utf8');
-            bruker['ser'] = new Buffer(fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/2D/ser'));
-            bruker['2rr'] = new Buffer(fs.readFileSync('/home/jefferson/WebstormProjects/brukerconverter/test/2D/2rr'));
+            bruker['procs'] = fs.readFileSync('test/2D/procs', 'utf8');
+            bruker['proc2s'] = fs.readFileSync('test/2D/proc2s', 'utf8');
+            bruker['acqus'] = fs.readFileSync('test/2D/acqus', 'utf8');
+            bruker['acqu2s'] = fs.readFileSync('test/2D/acqu2s', 'utf8');
+            bruker['ser'] = new Buffer(fs.readFileSync('test/2D/ser'));
+            bruker['2rr'] = new Buffer(fs.readFileSync('test/2D/2rr'));
 
             var result = convert(bruker);
 
@@ -100,7 +100,7 @@ describe("Bruker converter test", function () {
 
     describe('Test with zip file', function() {
         it.only('Main test', function () {
-            var zip  = fs.readFileSync("/home/jefferson/WebstormProjects/brukerconverter/test/zip/hrva034.zip");
+            var zip  = fs.readFileSync("test/zip/hrva034.zip");
             var result = convertZIP(zip);
             result.length.should.be.equal(5);
         });

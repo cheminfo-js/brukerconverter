@@ -13,8 +13,9 @@ module.exports =  {
     test: convert
 };
 
-function readZIP(zipFile) {
-    var zip = new JSZip(zipFile);
+function readZIP(zipFile, options) {
+    var zip = new JSZip();
+    zip.load(zipFile, options);
 
     var files = {
         'ser': BINARY,
