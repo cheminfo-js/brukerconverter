@@ -1,10 +1,10 @@
 "use strict";
 
-var convert = require("..").test;
+var convert = require("../src/brukerconverter").converFolder;
 var fs = require('fs');
 const IOBuffer = require('iobuffer');
 var JSZip = require("jszip");
-var convertZIP = require("..");
+var convertZIP = require("../src/brukerconverter").convertZip;
 
 describe("Bruker converter test", function () {
     describe("Convert 1D", function() {

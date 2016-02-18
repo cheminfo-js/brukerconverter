@@ -9,8 +9,8 @@ var BINARY = 1;
 var TEXT = 2;
 
 module.exports =  {
-    convert: readZIP,
-    test: convert
+    convertZip: readZIP,
+    converFolder: convert
 };
 
 function readZIP(zipFile, options) {

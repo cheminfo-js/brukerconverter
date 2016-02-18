@@ -10,7 +10,10 @@
     "Jefferson Hernandez"
   ],
   "description": "Parse and convert Bruker raw data",
-  "main": "build/brukerconverter.js",
+  "main": [
+    "dist/brukerconverter.js",
+    "dist/brukerconverter.min.js"
+  ]
   "moduleType": [
     "amd",
     "globals",
