@@ -262,6 +262,4 @@ function setFIDSpectrumData(file, spectra) {
         spectra.spectra[1].Y[i] = 0;
         spectra.spectra[1].X[i] = x;
     }
-
-
 }

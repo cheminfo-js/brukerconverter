@@ -14,7 +14,6 @@ describe("Bruker converter test", function () {
             bruker['procs'] = fs.readFileSync('test/1D/procs', 'utf8');
             bruker['1r'] = new Buffer(fs.readFileSync('test/1D/1r'));
             bruker['1i'] = new Buffer(fs.readFileSync('test/1D/1i'));
-
             var result = convert(bruker);
 
             result.spectra[0].Y.length.should.be.equal(result.info['$SI']);
@@ -99,7 +98,7 @@ describe("Bruker converter test", function () {
     });
 
     describe('Test with zip file', function() {
-        it.only('Main test', function () {
+        it('Main test', function () {
             var zip  = fs.readFileSync("test/zip/hrva034.zip");
             var result = convertZIP(zip);
             result.length.should.be.equal(5);

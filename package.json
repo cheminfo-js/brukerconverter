@@ -8,24 +8,24 @@
     "test": "test"
   },
   "scripts": {
-    "test": "mocha --require should --reporter mocha-better-spec-reporter --recursive",
+    "test": "mocha --require should --reporter mocha-better-spec-reporter --recursive -t 10000",
     "build":"cheminfo build"
   },
   "keywords": [
     "bruker",
     "converter"
   ],
-  "repository": "cheminfo/brukerconverter",
+  "repository": "cheminfo-js/brukerconverter",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/cheminfo/brukerconverter/issues"
+    "url": "https://github.com/cheminfo-js/brukerconverter/issues"
   },
-  "homepage": "https://github.com/cheminfo/brukerconverter",
+  "homepage": "https://github.com/cheminfo-js/brukerconverter",
   "devDependencies": {
-    "mocha-better-spec-reporter": "latest",
-    "mocha": "^1.21.5",
-    "should": "^4.1.0",
-    "cheminfo-tools":"1.3.3"
+    "mocha-better-spec-reporter": "^3.0.1",
+    "mocha": "^2.4.5",
+    "should": "^8.2.2",
+    "cheminfo-tools":"1.3.4"
   },
   "dependencies": {
     "iobuffer": "^1.0.4",

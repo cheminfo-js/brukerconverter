@@ -2,7 +2,7 @@
   "name": "brukerconverter",
   "version": "2.0.1",
   "homepage": "https://github.com/cheminfo/brukerconverter",
-  "description": "Parse and convert Burker raw data",
+  "description": "Parse and convert Bruker raw data",
   "main": "build/brukerconverter.js",
   "moduleType": [
     "amd",
