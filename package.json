@@ -1,6 +1,6 @@
 {
-  "name": "bruker-converter",
-  "version": "0.0.1",
+  "name": "brukerconverter",
+  "version": "0.1.0",
   "description": "Parse and convert Bruker raw data",
   "main": "./src/index.js",
   "directories": {
@@ -28,7 +28,7 @@
     "cheminfo-tools":"1.3.4"
   },
   "dependencies": {
-    "iobuffer": "^1.0.4",
+    "iobuffer": "^2.0.0",
     "jcampconverter": "^2.1.0",
     "jszip": "^2.5.0"
   }

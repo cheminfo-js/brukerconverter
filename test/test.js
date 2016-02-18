@@ -2,7 +2,7 @@
 
 var convert = require("..").test;
 var fs = require('fs');
-var Buffer = require("iobuffer").InputBuffer;
+const IOBuffer = require('iobuffer');
 var JSZip = require("jszip");
 var convertZIP = require("..");
 
@@ -12,8 +12,8 @@ describe("Bruker converter test", function () {
         it("Main test", function () {
             var bruker = {};
             bruker['procs'] = fs.readFileSync('test/1D/procs', 'utf8');
-            bruker['1r'] = new Buffer(fs.readFileSync('test/1D/1r'));
-            bruker['1i'] = new Buffer(fs.readFileSync('test/1D/1i'));
+            bruker['1r'] = new IOBuffer(fs.readFileSync('test/1D/1r'));
+            bruker['1i'] = new IOBuffer(fs.readFileSync('test/1D/1i'));
             var result = convert(bruker);
 
             result.spectra[0].Y.length.should.be.equal(result.info['$SI']);
@@ -31,7 +31,7 @@ describe("Bruker converter test", function () {
             var bruker = {};
             bruker['procs'] = fs.readFileSync('test/1D/pdata/1/procs', 'utf8');
             bruker['acqus'] = fs.readFileSync('test/1D/acqus', 'utf8');
-            bruker['fid'] = new Buffer(fs.readFileSync('test/1D/fid'));
+            bruker['fid'] = new IOBuffer(fs.readFileSync('test/1D/fid'));
 
             var result = convert(bruker);
 
@@ -69,8 +69,8 @@ describe("Bruker converter test", function () {
             bruker['proc2s'] = fs.readFileSync('test/2D/proc2s', 'utf8');
             bruker['acqus'] = fs.readFileSync('test/2D/acqus', 'utf8');
             bruker['acqu2s'] = fs.readFileSync('test/2D/acqu2s', 'utf8');
-            bruker['ser'] = new Buffer(fs.readFileSync('test/2D/ser'));
-            bruker['2rr'] = new Buffer(fs.readFileSync('test/2D/2rr'));
+            bruker['ser'] = new IOBuffer(fs.readFileSync('test/2D/ser'));
+            bruker['2rr'] = new IOBuffer(fs.readFileSync('test/2D/2rr'));
 
             var result = convert(bruker);
 

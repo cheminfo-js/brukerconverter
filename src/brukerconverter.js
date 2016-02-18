@@ -1,8 +1,8 @@
 "use strict";
 
-var Converter = require("jcampconverter");
-var Buffer = require("iobuffer").InputBuffer;
-var JSZip = require("jszip");
+const Converter = require("jcampconverter");
+const IOBuffer = require('iobuffer');
+const JSZip = require("jszip");
 
 // constants
 var BINARY = 1;
@@ -49,7 +49,7 @@ function readZIP(zipFile, options) {
             var idx = currFiles[j].name.lastIndexOf('/');
             var name = currFiles[j].name.substr(idx + 1);
             if(files[name] === BINARY || files['pdata/1/' + name] === BINARY) {
-                brukerFiles[name] = new Buffer(currFiles[j].asArrayBuffer());
+                brukerFiles[name] = new IOBuffer(currFiles[j].asArrayBuffer());
             } else {
                 brukerFiles[name] = currFiles[j].asText();
             }
