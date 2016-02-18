@@ -1,7 +1,14 @@
 {
   "name": "brukerconverter",
-  "version": "2.0.1",
-  "homepage": "https://github.com/cheminfo/brukerconverter",
+  "version": "0.0.1",
+  "main": [
+    "dist/brukerconverter.js",
+    "dist/brukerconverter.min.js"
+  ],
+  "homepage": "https://github.com/cheminfo-js/brukerconverter",
+  "authors": [
+    "Jefferson Hernandez"
+  ],
   "description": "Parse and convert Bruker raw data",
   "main": "build/brukerconverter.js",
   "moduleType": [
@@ -16,10 +23,7 @@
   ],
   "license": "MIT",
   "ignore": [
-    ".idea",
-    "test",
-    "src",
-    "node_modules",
-    "Gruntfile.js"
+    "/*",
+    "!dist/*"
   ]
 }
