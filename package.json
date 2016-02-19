@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "mocha --require should --reporter mocha-better-spec-reporter --recursive -t 10000",
-    "build":"cheminfo build"
+    "build":"cheminfo build --no-uglify --root BrukerConverter"
   },
   "keywords": [
     "bruker",
