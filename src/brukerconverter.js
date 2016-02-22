@@ -8,10 +8,6 @@ const JSZip = require("jszip");
 var BINARY = 1;
 var TEXT = 2;
 
-module.exports =  {
-    convertZip: readZIP,
-    converFolder: convert
-};
 
 function readZIP(zipFile, options) {
     var zip = new JSZip();
@@ -262,3 +258,8 @@ function setFIDSpectrumData(file, spectra) {
         spectra.spectra[1].data[0].x[i] = x;
     }
 }
+
+module.exports =  {
+    convertZip: readZIP,
+    converFolder: convert
+};
