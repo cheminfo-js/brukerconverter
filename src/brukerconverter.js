@@ -170,27 +170,27 @@ function setXYSpectrumData(file, spectra, store, real) {
     //spectra.spectra = new Array(nbSubSpectra);
     for(var i = 0; i < nbSubSpectra; ++i) {
         var toSave = {
-            DataType : "TYPE_NMR_SPECTRUM",
-            DataClass : "DATACLASS_XY",
-            FirstX : offset,
-            LastX : offset - SW_p / SF,
-            XUnits : "PPM",
-            YUnits : "Arbitrary",
-            X : new Array(td),
-            Y : new Array(td)
+            dataType : "NMR Spectrum",
+            dataTable : "(X++(R..R))",
+            firstX : offset,
+            lastX : offset - SW_p / SF,
+            xUnit : "PPM",
+            yUnit : "Arbitrary",
+            data:[{x:new Array(td),y:new Array(td)}]
+
         };
 
         var x = offset;
         if(real) {
             for(var k = 0; k < td - 1; ++k) {
-                toSave.X[k] = x;
-                toSave.Y[k] = file.readInt32();
+                toSave.data[0].x[k] = x;
+                toSave.data[0].y[k] = file.readInt32();
                 x += SF;
             }
         } else {
             for(k = td - 1; k > 0; --k) {
-                toSave.X[k] = x;
-                toSave.Y[k] = file.readInt32();
+                toSave.data[0].x[k] = x;
+                toSave.data[0].y[k] = file.readInt32();
                 x += SF;
             }
         }
@@ -233,16 +233,15 @@ function setFIDSpectrumData(file, spectra) {
 
     for(var i = 0; i < 2; ++i) {
         var toSave = {
-            DataType : "TYPE_NMR_FID",
-            DataClass : "DATACLASS_XY",
-            NbPoints : td,
-            FirstX : 0,
-            LastX : AQ,
-            Nucleus : spectra.info["$NUC1"] ? spectra.info["$NUC1"] : undefined,
-            XUnits : "Hz",
-            YUnits : "Arbitrary",
-            X : new Array(td),
-            Y : new Array(td)
+            dataType : "NMR FID",
+            dataTable : "(X++(R..R))",
+            nbPoints : td,
+            firstX : 0,
+            lastX : AQ,
+            nucleus : spectra.info["$NUC1"] ? spectra.info["$NUC1"] : undefined,
+            xUnit : "Hz",
+            yUnit : "Arbitrary",
+            data:[{x:new Array(td),y:new Array(td)}]
         };
         spectra.spectra.push(toSave);
     }
@@ -250,16 +249,16 @@ function setFIDSpectrumData(file, spectra) {
     var x = 0;
 
     for(i = 0; file.available(8); ++i, x += DW) {
-        spectra.spectra[0].Y[i] = file.readInt32();
-        spectra.spectra[0].X[i] = x;
-        spectra.spectra[1].Y[i] = file.readInt32();
-        spectra.spectra[1].X[i] = x;
+        spectra.spectra[0].data[0].y[i] = file.readInt32();
+        spectra.spectra[0].data[0].x[i] = x;
+        spectra.spectra[1].data[0].y[i] = file.readInt32();
+        spectra.spectra[1].data[0].x[i] = x;
     }
 
     for(; i < td; ++i, x += DW) {
-        spectra.spectra[0].Y[i] = 0;
-        spectra.spectra[0].X[i] = x;
-        spectra.spectra[1].Y[i] = 0;
-        spectra.spectra[1].X[i] = x;
+        spectra.spectra[0].data[0].y[i] = 0;
+        spectra.spectra[0].data[0].x[i] = x;
+        spectra.spectra[1].data[0].y[i] = 0;
+        spectra.spectra[1].data[0].x[i] = x;
     }
 }

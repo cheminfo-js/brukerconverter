@@ -16,8 +16,8 @@ describe("Bruker converter test", function () {
             bruker['1i'] = new IOBuffer(fs.readFileSync('test/1D/1i'));
             var result = convert(bruker);
 
-            result.spectra[0].Y.length.should.be.equal(result.info['$SI']);
-            result.spectra[1].Y.length.should.be.equal(result.info['$SI']);
+            result.spectra[0].data[0].y.length.should.be.equal(result.info['$SI']);
+            result.spectra[1].data[0].y.length.should.be.equal(result.info['$SI']);
             result.info.should.have.properties([
                 'JCAMPDX',
                 'ORIGIN',
@@ -42,21 +42,20 @@ describe("Bruker converter test", function () {
                 'OWNER'
             ]);
 
-            var len = result.spectra[0].NbPoints;
+            var len = result.spectra[0].nbPoints;
 
-            result.spectra[0].Y[len - 1].should.be.a.NUMBER;
-            result.spectra[1].Y[len - 1].should.be.a.NUMBER;
+            result.spectra[0].data[0].y[len - 1].should.be.a.NUMBER;
+            result.spectra[1].data[0].y[len - 1].should.be.a.NUMBER;
             result.spectra[0].should.have.properties([
-                'DataType',
-                'DataClass',
-                'XUnits',
-                'YUnits',
-                'X',
-                'Y',
-                'NbPoints',
-                'Nucleus',
-                'FirstX',
-                'LastX'
+                'dataType',
+                'dataTable',
+                'xUnit',
+                'yUnit',
+                'data',
+                'nbPoints',
+                'nucleus',
+                'firstX',
+                'lastX'
             ]);
         });
     });
@@ -75,8 +74,8 @@ describe("Bruker converter test", function () {
             var result = convert(bruker);
 
             result.spectra.length.should.be.equal(result.info.nbSubSpectra);
-            result.spectra[1023].Y.length.should.be.equal(result.info["$SI"]);
-            result.spectra[1023].Y[4].should.be.a.Number;
+            result.spectra[1023].data[0].y.length.should.be.equal(result.info["$SI"]);
+            result.spectra[1023].data[0].y[4].should.be.a.Number;
 
             result.info.should.have.properties([
                 'JCAMPDX',
@@ -85,14 +84,13 @@ describe("Bruker converter test", function () {
             ]);
 
             result.spectra[1023].should.have.properties([
-                'DataType',
-                'DataClass',
-                'FirstX',
-                'LastX',
-                'XUnits',
-                'YUnits',
-                'X',
-                'Y'
+                'dataType',
+                'dataTable',
+                'firstX',
+                'lastX',
+                'xUnit',
+                'yUnit',
+                'data',
             ]);
         });
     });
