@@ -24,11 +24,18 @@ function readZIP(zipFile, options) {
         'pdata/1/1i': BINARY,
         'pdata/1/2rr': BINARY
     };
-
+    //console.log(zip);
     var folders = zip.filter(function (relativePath, file) {
-        if(/^\d+$/.test(relativePath.substr(0, relativePath.length - 1)))
+        //console.log(relativePath);
+        if(/^\d+$/.test(relativePath.substr(0, relativePath.length - 1))){
+            console.log(relativePath);
             return true
+        }
+        //if(relativePath.indexOf("acqus")>=0||relativePath.indexOf("acqu2s")>=0)
+
     });
+
+    console.log(folders);
 
     var spectra = new Array(folders.length);
 

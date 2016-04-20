@@ -7,7 +7,6 @@
     "Jefferson Hernandez"
   ],
   "description": "Parse and convert Bruker raw data",
-
   "moduleType": [
     "amd",
     "globals",
