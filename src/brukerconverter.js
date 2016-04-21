@@ -18,34 +18,36 @@ function readZIP(zipFile, options) {
         'fid': BINARY,
         'acqus': TEXT,
         'acqu2s': TEXT,
-        'pdata/1/procs': TEXT,
-        'pdata/1/proc2s': TEXT,
-        'pdata/1/1r': BINARY,
-        'pdata/1/1i': BINARY,
-        'pdata/1/2rr': BINARY
+        'procs': TEXT,
+        'proc2s': TEXT,
+        '1r': BINARY,
+        '1i': BINARY,
+        '2rr': BINARY
     };
-    //console.log(zip);
     var folders = zip.filter(function (relativePath, file) {
-        //console.log(relativePath);
-        if(/^\d+$/.test(relativePath.substr(0, relativePath.length - 1))){
-            console.log(relativePath);
-            return true
+        if(relativePath.indexOf("ser")>=0||relativePath.indexOf("fid")>=0
+            ||relativePath.indexOf("1r")>=0||relativePath.indexOf("2rr")>=0){
+            return true;
         }
-        //if(relativePath.indexOf("acqus")>=0||relativePath.indexOf("acqu2s")>=0)
+        return false;
 
     });
 
-    console.log(folders);
+    //console.log(folders);
 
     var spectra = new Array(folders.length);
 
     for(var i = 0; i < folders.length; ++i) {
         var len = folders[i].name.length;
-        var currFolder = zip.folder(folders[i].name.substr(0, len - 1));
+        var name = folders[i].name;
+        name = name.substr(0,name.lastIndexOf("/")+1);
+        //console.log(name);
+        var currFolder = zip.folder(name);
+        //console.log(currFolder);
         var currFiles = currFolder.filter(function (relativePath, file) {
             return files[relativePath] ? true : false;
         });
-
+        //console.log(currFiles.length);
         var brukerFiles = {};
 
         for(var j = 0; j < currFiles.length; ++j) {
@@ -58,7 +60,7 @@ function readZIP(zipFile, options) {
             }
         }
 
-        spectra[i] = convert(brukerFiles);
+        spectra[i] = {"filename":name,value:convert(brukerFiles)};
     }
 
     return spectra;
@@ -148,7 +150,8 @@ function setXYSpectrumData(file, spectra, store, real) {
 
     var SW_p = parseFloat(spectra.info["$SWP"]);
     var SF = parseFloat(spectra.info["$SF"]);
-    var BF = parseFloat(spectra.info["$BF1"]);
+    var BF = SF;
+    //var BF = parseFloat(spectra.info["$BF1"]);
     var offset = spectra.shiftOffsetVal;//parseFloat(spectra.info["$OFFSET"]);
 
     spectra.info["observeFrequency"] = SF;
@@ -175,11 +178,16 @@ function setXYSpectrumData(file, spectra, store, real) {
         var toSave = {
             dataType : "NMR Spectrum",
             dataTable : "(X++(R..R))",
+            nbPoints : td,
             firstX : offset,
             lastX : offset - SW_p / SF,
             xUnit : "PPM",
             yUnit : "Arbitrary",
-            data:[{x:new Array(td),y:new Array(td)}]
+            data:[{x:new Array(td),y:new Array(td)}],
+            isXYdata:true,
+            observeFrequency:SF,
+            title:spectra.info['$title'],
+            deltaX:(SW_p / SF)/(td-1)
 
         };
 
@@ -216,12 +224,13 @@ function setFIDSpectrumData(file, spectra) {
     var SW_h = spectra.info['$SWH'] = parseFloat(spectra.info['$SWH']);
 
     var SF = spectra.info['$SF01'] = parseFloat(spectra.info['$SF01']);
-    var BF = spectra.info['$BF1'] = parseFloat(spectra.info['$BF1']);
+    var BF =  parseFloat(spectra.info['$BF1']);
+    spectra.info['$BF1'] = BF;
+    /*spectra.info['$SF'] = parseFloat(spectra.info['$SF']);
 
-    spectra.info['$SF'] = parseFloat(spectra.info['$SF']);
     if(spectra.info['$SF'] !== 0) {
         BF = spectra.info['$SF'];
-    }
+    }*/
 
     var DW = 1 / (2 * SW_h);
     var AQ = td * DW;
@@ -234,6 +243,26 @@ function setFIDSpectrumData(file, spectra) {
     else
         file.setBigEndian();
 
+    /*
+    dataType:"NMR Spectrum"
+    datatable:"(X++(R..R))"
+    deltaX:-0.0007334350440492773
+    firstX:11.00659
+    firstY:-119886
+    isXYdata:true
+    lastX:-1.009276326659311
+    lastY:-109159
+    nbPoints:16384
+    observeFrequency:400.112
+    page:"N=1"
+    pageSymbol:"N"
+    pageValue:0.002499312689010522
+    title:"109-92-2"
+    xFactor:0.0007334350440492761
+    xUnit:"PPM"
+    yFactor:1
+    yUnit:"ARBITRARY UNITS"*/
+
     for(var i = 0; i < 2; ++i) {
         var toSave = {
             dataType : "NMR FID",
@@ -244,7 +273,11 @@ function setFIDSpectrumData(file, spectra) {
             nucleus : spectra.info["$NUC1"] ? spectra.info["$NUC1"] : undefined,
             xUnit : "Hz",
             yUnit : "Arbitrary",
-            data:[{x:new Array(td),y:new Array(td)}]
+            data:[{x:new Array(td),y:new Array(td)}],
+            isXYdata:true,
+            observeFrequency:SF,
+            title:spectra.info['$title'],
+            deltaX:DW
         };
         spectra.spectra.push(toSave);
     }

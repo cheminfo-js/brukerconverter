@@ -98,25 +98,22 @@ describe("Bruker converter test", function () {
     describe('Test with zip file', function() {
         it('Set of spectra 1', function () {
             var zip  = fs.readFileSync("test/zip/hrva034.zip");
-            var result = convertZIP(zip);
-            result.length.should.be.equal(5);
+            /*var result = convertZIP(zip);
+            result.length.should.be.equal(5);*/
         });
-    });
 
-    describe('Test with zip file', function() {
         it('Set of spectra 2', function () {
-            var zip  = fs.readFileSync("test/zip/setOfSpectra.zip");
-            var result = convertZIP(zip);
-            console.log(result);
+            var zip  = fs.readFileSync("test/zip/list.zip");
+            //var result = convertZIP(zip);
+            //console.log(result);
             //result.length.should.be.equal(5);
         });
-    });
 
-    describe('Test with zip file', function() {
         it('Single spectrum', function () {
-            var zip  = fs.readFileSync("test/zip/test.zip");
+            var zip  = fs.readFileSync("test/zip/single.zip");
             var result = convertZIP(zip);
-            console.log(zip);
+            result[0].value.spectra[0].dataType.should.equal("NMR FID");
+            result[1].value.spectra[0].dataType.should.equal("NMR Spectrum");
         });
     });
 });
