@@ -192,7 +192,7 @@ function setXYSpectrumData(file, spectra, store, real) {
             isXYdata:true,
             observeFrequency:SF,
             title:spectra.info['TITLE'],
-            deltaX:-(SW_p / SF)/(td-1)
+            deltaX:(SW_p / SF)/(td-1)
 
         };
 
