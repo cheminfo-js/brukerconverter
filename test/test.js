@@ -96,15 +96,15 @@ describe("Bruker converter test", function () {
     });
 
     describe('Test with zip file', function() {
-        it('Set of spectra 1', function () {
+        it.only('Set of spectra 1', function () {
             var zip  = fs.readFileSync("test/zip/hrva034.zip");
-            /*var result = convertZIP(zip);
-            result.length.should.be.equal(5);*/
+            var result = convertZIP(zip);
+            result.length.should.equal(10);
         });
 
         it('Set of spectra 2', function () {
             var zip  = fs.readFileSync("test/zip/list.zip");
-            //var result = convertZIP(zip);
+            var result = convertZIP(zip);
             //console.log(result);
             //result.length.should.be.equal(5);
         });
@@ -113,6 +113,20 @@ describe("Bruker converter test", function () {
             var zip  = fs.readFileSync("test/zip/single.zip");
             var result = convertZIP(zip);
             result[0].value.spectra[0].dataType.should.equal("NMR FID");
+            //console.log(result[1].value);
+            console.log(result[1].value.spectra[0]);
+            var nbPoints = result[1].value.spectra[0].nbPoints;
+            console.log(nbPoints);
+            console.log(result[1].value.spectra[0].firstX);
+            console.log(result[1].value.spectra[0].lastX);
+            console.log(result[1].value.spectra[0].data[0].x[0]);
+            //for(var i=0;i<10;i++){
+            //    console.log(result[1].value.spectra[0].data[0].x[i]);
+            //}
+            console.log(result[1].value.spectra[0].data[0].x[nbPoints-1]);
+            console.log(result[1].value.spectra[0].data[0].y[0]);
+            console.log(result[1].value.spectra[0].data[0].y[nbPoints-1]);
+            console.log(result[1].value.spectra[0].data[0].x.length);
             result[1].value.spectra[0].dataType.should.equal("NMR Spectrum");
         });
     });

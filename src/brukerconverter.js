@@ -53,13 +53,13 @@ function readZIP(zipFile, options) {
         for(var j = 0; j < currFiles.length; ++j) {
             var idx = currFiles[j].name.lastIndexOf('/');
             var name = currFiles[j].name.substr(idx + 1);
-            if(files[name] === BINARY || files['pdata/1/' + name] === BINARY) {
+            if(files[name] === BINARY) {
                 brukerFiles[name] = new IOBuffer(currFiles[j].asArrayBuffer());
             } else {
                 brukerFiles[name] = currFiles[j].asText();
             }
         }
-
+        //console.log(folders[i].name);
         spectra[i] = {"filename":name,value:convert(brukerFiles)};
     }
 
@@ -107,12 +107,15 @@ function convert2D(files) {
     if(files['2rr']) {
         var result = parseData(files['procs']);
         var temp = parseData(files['proc2s']);
+        result.info.nbSubSpectra = temp.info['$SI'] = parseInt(temp.info['$SI']);
     } else if(files['ser']) {
         result = parseData(files['acqus']);
         temp = parseData(files['acqu2s']);
+        result.info.nbSubSpectra = temp.info['$SI'] = parseInt(temp.info['$TD']);
+        result.info['$SI'] = parseInt(result.info['$TD']);
     }
 
-    result.info.nbSubSpectra = temp.info['$SI'] = parseInt(temp.info['$SI']);
+
     var SW_p = temp.info['$SWP'] = parseFloat(temp.info['$SWP']);
     var SF = temp.info['$SF'] = parseFloat(temp.info['$SF']);
     var offset = temp.info['$OFFSET'] = parseFloat(temp.info['$OFFSET']);
@@ -120,7 +123,7 @@ function convert2D(files) {
     result.info.firstY = offset;
     result.info.lastY = offset - SW_p / SF;
     result.info['$BF2'] = SF;
-    result.info['$SF01'] = SF;
+    result.info['$SFO1'] = SF;
 
     if(files['2rr']) {
         setXYSpectrumData(files['2rr'], result, '2rr', true);
@@ -148,6 +151,8 @@ function convert2D(files) {
 function setXYSpectrumData(file, spectra, store, real) {
     var td = spectra.info['$SI'] = parseInt(spectra.info['$SI']);
 
+    //console.log(spectra.info);
+    //console.log(spectra);
     var SW_p = parseFloat(spectra.info["$SWP"]);
     var SF = parseFloat(spectra.info["$SF"]);
     var BF = SF;
@@ -156,7 +161,7 @@ function setXYSpectrumData(file, spectra, store, real) {
 
     spectra.info["observeFrequency"] = SF;
     spectra.info["$BF1"] = BF;
-    spectra.info["$SF01"] = SF;
+    spectra.info["$SFO1"] = SF;
     spectra.info.brukerReference = BF;
 
     var endian = parseInt(spectra.info["$BYTORDP"]);
@@ -164,7 +169,7 @@ function setXYSpectrumData(file, spectra, store, real) {
 
     // number of spectras
     var nbSubSpectra = spectra.info.nbSubSpectra ? spectra.info.nbSubSpectra : 1;
-
+    //console.log(nbSubSpectra+" "+td);
     //console.log(file);
     //console.log("");
 
@@ -186,23 +191,30 @@ function setXYSpectrumData(file, spectra, store, real) {
             data:[{x:new Array(td),y:new Array(td)}],
             isXYdata:true,
             observeFrequency:SF,
-            title:spectra.info['$title'],
-            deltaX:(SW_p / SF)/(td-1)
+            title:spectra.info['TITLE'],
+            deltaX:-(SW_p / SF)/(td-1)
 
         };
 
         var x = offset;
+        var deltaX = toSave.deltaX;
         if(real) {
-            for(var k = 0; k < td - 1; ++k) {
+            for(var k = 0; k < td; ++k) {
                 toSave.data[0].x[k] = x;
                 toSave.data[0].y[k] = file.readInt32();
-                x += SF;
+                if(toSave.data[0].y[k]===null||isNaN(toSave.data[0].y[k])){
+                    toSave.data[0].y[k] = 0;
+                }
+                x += deltaX;
             }
         } else {
-            for(k = td - 1; k > 0; --k) {
+            for(k = td - 1; k >= 0; --k) {
                 toSave.data[0].x[k] = x;
                 toSave.data[0].y[k] = file.readInt32();
-                x += SF;
+                if(toSave.data[0].y[k]===null||isNaN(toSave.data[0].y[k])) {
+                    toSave.data[0].y[k] = 0;
+                }
+                    x += deltaX;
             }
         }
         spectra.spectra.push(toSave);
@@ -217,13 +229,14 @@ function parseData(file) {
 
 function setFIDSpectrumData(file, spectra) {
     var td = spectra.info['$TD'] = parseInt(spectra.info['$TD']);
-    var SW_p = spectra.info['$SWP'] = parseFloat(spectra.info['$SWP']);
-    if(SW_p !== 0) {
-        spectra.info['$SWH'] = SW_p;
-    }
+    //var SW_p = spectra.info['$SWP'] = parseFloat(spectra.info['$SWP']);
+    //if(SW_p !== 0) {
+    //    spectra.info['$SWH'] = SW_p;
+    //}
     var SW_h = spectra.info['$SWH'] = parseFloat(spectra.info['$SWH']);
+    var SW = spectra.info['$SW'] = parseFloat(spectra.info['$SW']);
 
-    var SF = spectra.info['$SF01'] = parseFloat(spectra.info['$SF01']);
+    var SF = spectra.info['$SFO1'] = parseFloat(spectra.info['$SFO1']);
     var BF =  parseFloat(spectra.info['$BF1']);
     spectra.info['$BF1'] = BF;
     /*spectra.info['$SF'] = parseFloat(spectra.info['$SF']);
@@ -232,8 +245,13 @@ function setFIDSpectrumData(file, spectra) {
         BF = spectra.info['$SF'];
     }*/
 
-    var DW = 1 / (2 * SW_h);
-    var AQ = td * DW;
+    //var DW = 1 / (2 * SW_h);
+    //var AQ = td * DW;
+    var AQ = SW;
+    var DW = AQ/(td-1);
+
+    //console.log(DW+" "+SW+" "+td);
+
 
     var endian = parseInt(spectra.info["$BYTORDP"]);
     endian = endian ? 0 : 1;
@@ -242,26 +260,6 @@ function setFIDSpectrumData(file, spectra) {
         file.setLittleEndian();
     else
         file.setBigEndian();
-
-    /*
-    dataType:"NMR Spectrum"
-    datatable:"(X++(R..R))"
-    deltaX:-0.0007334350440492773
-    firstX:11.00659
-    firstY:-119886
-    isXYdata:true
-    lastX:-1.009276326659311
-    lastY:-109159
-    nbPoints:16384
-    observeFrequency:400.112
-    page:"N=1"
-    pageSymbol:"N"
-    pageValue:0.002499312689010522
-    title:"109-92-2"
-    xFactor:0.0007334350440492761
-    xUnit:"PPM"
-    yFactor:1
-    yUnit:"ARBITRARY UNITS"*/
 
     for(var i = 0; i < 2; ++i) {
         var toSave = {
@@ -276,7 +274,7 @@ function setFIDSpectrumData(file, spectra) {
             data:[{x:new Array(td),y:new Array(td)}],
             isXYdata:true,
             observeFrequency:SF,
-            title:spectra.info['$title'],
+            title:spectra.info['TITLE'],
             deltaX:DW
         };
         spectra.spectra.push(toSave);
@@ -289,6 +287,12 @@ function setFIDSpectrumData(file, spectra) {
         spectra.spectra[0].data[0].x[i] = x;
         spectra.spectra[1].data[0].y[i] = file.readInt32();
         spectra.spectra[1].data[0].x[i] = x;
+        if(spectra.spectra[0].data[0].y[i]===null || isNaN(spectra.spectra[1].data[0].y[i])){
+            spectra.spectra[0].data[0].y[i]=0;
+        }
+        if(spectra.spectra[1].data[0].y[i]===null || isNaN(spectra.spectra[1].data[0].y[i])){
+            spectra.spectra[1].data[0].y[i]=0;
+        }
     }
 
     for(; i < td; ++i, x += DW) {
