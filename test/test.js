@@ -11,10 +11,10 @@ describe("Bruker converter test", function () {
 
         it("Main test", function () {
             var bruker = {};
-            bruker['procs'] = fs.readFileSync('test/1D/procs', 'utf8');
-            bruker['1r'] = new IOBuffer(fs.readFileSync('test/1D/1r'));
-            bruker['1i'] = new IOBuffer(fs.readFileSync('test/1D/1i'));
-            var result = convert(bruker);
+            bruker['procs'] = fs.readFileSync('test/1D/pdata/1/procs', 'utf8');
+            bruker['1r'] = new IOBuffer(fs.readFileSync('test/1D/pdata/1/1r'));
+            bruker['1i'] = new IOBuffer(fs.readFileSync('test/1D/pdata/1/1i'));
+            var result = convert(bruker, {xy:true, keepSpectra:true});
 
             result.spectra[0].data[0].y.length.should.be.equal(result.info['$SI']);
             result.spectra[1].data[0].y.length.should.be.equal(result.info['$SI']);
@@ -33,7 +33,7 @@ describe("Bruker converter test", function () {
             bruker['acqus'] = fs.readFileSync('test/1D/acqus', 'utf8');
             bruker['fid'] = new IOBuffer(fs.readFileSync('test/1D/fid'));
 
-            var result = convert(bruker);
+            var result = convert(bruker,{xy:true, keepSpectra:true});
 
             result.spectra.length.should.be.equal(2);
             result.info.should.have.properties([
@@ -71,7 +71,7 @@ describe("Bruker converter test", function () {
             bruker['ser'] = new IOBuffer(fs.readFileSync('test/2D/ser'));
             bruker['2rr'] = new IOBuffer(fs.readFileSync('test/2D/2rr'));
 
-            var result = convert(bruker);
+            var result = convert(bruker,{xy:true, keepSpectra:true});
 
             result.spectra.length.should.be.equal(result.info.nbSubSpectra);
             result.spectra[1023].data[0].y.length.should.be.equal(result.info["$SI"]);
@@ -96,25 +96,27 @@ describe("Bruker converter test", function () {
     });
 
     describe('Test with zip file', function() {
-        it.only('Set of spectra 1', function () {
+        it('Set of spectra 1', function () {
             var zip  = fs.readFileSync("test/zip/hrva034.zip");
-            var result = convertZIP(zip);
+            var result = convertZIP(zip, {xy:true, keepSpectra:true, noContours:true});
+            //console.log(result);
+            //console.log(result[0].value.spectra[0].data[0].x[0]+" "+result[0].value.spectra[0].data[0].x[result[0].value.spectra[0].data[0].x.length-1]);
             result.length.should.equal(10);
         });
 
         it('Set of spectra 2', function () {
             var zip  = fs.readFileSync("test/zip/list.zip");
-            var result = convertZIP(zip);
+            var result = convertZIP(zip, {xy:true, keepSpectra:true});
             //console.log(result);
             //result.length.should.be.equal(5);
         });
 
         it('Single spectrum', function () {
             var zip  = fs.readFileSync("test/zip/single.zip");
-            var result = convertZIP(zip);
+            var result = convertZIP(zip, {xy:true, keepSpectra:true});
             result[0].value.spectra[0].dataType.should.equal("NMR FID");
-            //console.log(result[1].value);
-            console.log(result[1].value.spectra[0]);
+            /*console.log(result[1].value.spectra.length);
+            //console.log(result[1].value.spectra[0].data);
             var nbPoints = result[1].value.spectra[0].nbPoints;
             console.log(nbPoints);
             console.log(result[1].value.spectra[0].firstX);
@@ -126,7 +128,7 @@ describe("Bruker converter test", function () {
             console.log(result[1].value.spectra[0].data[0].x[nbPoints-1]);
             console.log(result[1].value.spectra[0].data[0].y[0]);
             console.log(result[1].value.spectra[0].data[0].y[nbPoints-1]);
-            console.log(result[1].value.spectra[0].data[0].x.length);
+            console.log(result[1].value.spectra[0].data[0].x.length);*/
             result[1].value.spectra[0].dataType.should.equal("NMR Spectrum");
         });
     });
