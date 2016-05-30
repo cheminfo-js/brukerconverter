@@ -139,7 +139,7 @@ function convert1D(files, options) {
 }
 
 function convert2D(files, options) {
-    var SF,SW_p,offset;
+    var SF,SW_p,SW,offset;
     if(files['2rr']) {
         var result = parseData(files['procs'], options);
         var temp = parseData(files['proc2s'], options);
@@ -153,11 +153,15 @@ function convert2D(files, options) {
         temp = parseData(files['acqu2s'], options);
         result.info.nbSubSpectra = temp.info['$SI'] = parseInt(temp.info['$TD']);
         result.info['$SI'] = parseInt(result.info['$TD']);
-        SW_p = temp.info['$SWH'] = parseFloat(temp.info['$SWH']);
+        //SW_p = temp.info['$SWH'] = parseFloat(temp.info['$SWH']);
+
+        SW_p = temp.info["$SW"];
+
         result.info["$SWP"]=result.info["$SWH"];
         result.info["$SF"]=parseFloat(temp.info['$SFO1']);
         result.info['$OFFSET']=0;
-        SF = temp.info['$SFO2'] = parseFloat(temp.info['$SFO2']);
+        SF = temp.info['$SFO1'] = parseFloat(temp.info['$SFO1']);
+        SF = 1;
         offset=0;
         result.info['$AXNUC']=result.info['$NUC1'];
         temp.info['$AXNUC']=temp.info['$NUC1'];

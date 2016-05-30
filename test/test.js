@@ -132,4 +132,23 @@ describe("Bruker converter test", function () {
             result[1].value.spectra[0].dataType.should.equal("NMR Spectrum");
         });
     });
+
+    describe('Test with pseudo SER file', function() {
+        var zip  = fs.readFileSync("test/zip/21-BOMA-new.zip");
+        var result = convertZIP(zip, {xy: true, keepSpectra: true, noContours: true});
+        console.log(result[0].value)
+        it.only('StarX', function () {
+            result.length.should.equal(2);
+        });
+
+        it('StopX', function () {
+            var result = convertZIP(zip, {xy: true, keepSpectra: true});
+        });
+
+        it('Other parameters', function () {
+            var result = convertZIP(zip, {xy: true, keepSpectra: true});
+            result[0].value.spectra[0].dataType.should.equal("NMR FID");
+            result[1].value.spectra[0].dataType.should.equal("NMR Spectrum");
+        });
+    });
 });
