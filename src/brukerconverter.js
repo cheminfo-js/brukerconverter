@@ -179,17 +179,12 @@ function convert2D(files, options) {
     if(files['2rr']) {
         setXYSpectrumData(files['2rr'], result, '2rr', true);
     } else if(files['ser']) {
-        setXYSpectrumData(files['ser'], result, 'ser', true);
+        setFIDSpectrumData(files['ser'], result, 'ser', true);
     }
 
     for(var i = 0; i < nbSubSpectra; i++) {
         pageValue+=deltaY;
         result.spectra[i].pageValue=pageValue;
-        if(files['2rr']) {
-            result.spectra[i].setYUnits = 'PPM';
-        } else if(files['ser']) {
-            result.spectra[i].setYUnits = 'HZ';
-        }
     }
 
     var dataType = files['ser'] ? 'TYPE_2DNMR_FID' : 'TYPE_2DNMR_SPECTRUM';
@@ -298,8 +293,6 @@ function setFIDSpectrumData(file, spectra) {
     var DW = AQ/(td-1);
 
     //console.log(DW+" "+SW+" "+td);
-
-
     var endian = parseInt(spectra.info["$BYTORDP"]);
     endian = endian ? 0 : 1;
 
@@ -308,7 +301,10 @@ function setFIDSpectrumData(file, spectra) {
     else
         file.setBigEndian();
 
-    for(var i = 0; i < 2; ++i) {
+    var nbSubSpectra = spectra.info.nbSubSpectra ? spectra.info.nbSubSpectra : 1;
+    spectra.spectra = new Array(nbSubSpectra);
+    
+    for(var j = 0; j < nbSubSpectra/2; j++) {
         var toSave = {
             dataType : "NMR FID",
             dataTable : "(X++(R..R))",
@@ -316,7 +312,7 @@ function setFIDSpectrumData(file, spectra) {
             firstX : 0,
             lastX : AQ,
             nucleus : spectra.info["$NUC1"] ? spectra.info["$NUC1"] : undefined,
-            xUnit : "Hz",
+            xUnit : "Sec",
             yUnit : "Arbitrary",
             data:[new Array(2*td)],//[{x:new Array(td),y:new Array(td)}],
             isXYdata:true,
@@ -324,36 +320,49 @@ function setFIDSpectrumData(file, spectra) {
             title:spectra.info['TITLE'],
             deltaX:DW
         };
-        spectra.spectra.push(toSave);
-    }
+        spectra.spectra[j*2] = toSave;
 
-    var x = 0;
+        toSave = {
+            dataType : "NMR FID",
+            dataTable : "(X++(I..I))",
+            nbPoints : td,
+            firstX : 0,
+            lastX : AQ,
+            nucleus : spectra.info["$NUC1"] ? spectra.info["$NUC1"] : undefined,
+            xUnit : "Sec",
+            yUnit : "Arbitrary",
+            data:[new Array(2*td)],//[{x:new Array(td),y:new Array(td)}],
+            isXYdata:true,
+            observeFrequency:SF,
+            title:spectra.info['TITLE'],
+            deltaX:DW
+        };
+        spectra.spectra[j*2+1] = toSave;
+        
+        var x = 0;
+        var y;
+        for(var i = 0; file.available(8)&&i<td; i++, x = i*DW) {
+            y = file.readInt32();
+            if(y===null || isNaN(y)){
+                y=0;
+            }
+            spectra.spectra[j*2].data[0][2*i+1] = y;
+            spectra.spectra[j*2].data[0][2*i] = x;
+            y = file.readInt32();
+            if(y===null || isNaN(y)){
+                y=0;
+            }
+            spectra.spectra[j*2+1].data[0][2*i+1] = y;
+            spectra.spectra[j*2+1].data[0][2*i] = x;
 
-    var y;
-    for(i = 0; file.available(8); ++i, x += DW) {
-        y = file.readInt32();
-        if(y===null || isNaN(y)){
-            y=0;
         }
-        spectra.spectra[0].data[0][2*i+1] = y;
-        spectra.spectra[0].data[0][2*i] = x;
-        y = file.readInt32();
-        if(y===null || isNaN(y)){
-            y=0;
-        }
-        if(y===null || isNaN(y)){
-            y=0;
-        }
-        spectra.spectra[1].data[0][2*i+1] = y;
-        spectra.spectra[1].data[0][2*i] = x;
 
-    }
-
-    for(; i < td; ++i, x += DW) {
-        spectra.spectra[0].data[0][2*i+1] = 0;
-        spectra.spectra[0].data[0][2*i] = x;
-        spectra.spectra[1].data[0][2*i+1] = 0;
-        spectra.spectra[1].data[0][2*i] = x;
+        for(; i < td; i++, x = i*DW) {
+            spectra.spectra[j*2].data[0][2*i+1] = 0;
+            spectra.spectra[j*2].data[0][2*i] = x;
+            spectra.spectra[j*2+1].data[0][2*i+1] = 0;
+            spectra.spectra[j*2+1].data[0][2*i] = x;
+        }
     }
 }
 

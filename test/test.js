@@ -99,56 +99,44 @@ describe("Bruker converter test", function () {
         it('Set of spectra 1', function () {
             var zip  = fs.readFileSync("test/zip/hrva034.zip");
             var result = convertZIP(zip, {xy:true, keepSpectra:true, noContours:true});
-            //console.log(result);
-            //console.log(result[0].value.spectra[0].data[0].x[0]+" "+result[0].value.spectra[0].data[0].x[result[0].value.spectra[0].data[0].x.length-1]);
             result.length.should.equal(10);
         });
 
         it('Set of spectra 2', function () {
             var zip  = fs.readFileSync("test/zip/list.zip");
             var result = convertZIP(zip, {xy:true, keepSpectra:true});
-            //console.log(result);
-            //result.length.should.be.equal(5);
         });
 
         it('Single spectrum', function () {
             var zip  = fs.readFileSync("test/zip/single.zip");
             var result = convertZIP(zip, {xy:true, keepSpectra:true});
             result[0].value.spectra[0].dataType.should.equal("NMR FID");
-            /*console.log(result[1].value.spectra.length);
-            //console.log(result[1].value.spectra[0].data);
-            var nbPoints = result[1].value.spectra[0].nbPoints;
-            console.log(nbPoints);
-            console.log(result[1].value.spectra[0].firstX);
-            console.log(result[1].value.spectra[0].lastX);
-            console.log(result[1].value.spectra[0].data[0].x[0]);
-            //for(var i=0;i<10;i++){
-            //    console.log(result[1].value.spectra[0].data[0].x[i]);
-            //}
-            console.log(result[1].value.spectra[0].data[0].x[nbPoints-1]);
-            console.log(result[1].value.spectra[0].data[0].y[0]);
-            console.log(result[1].value.spectra[0].data[0].y[nbPoints-1]);
-            console.log(result[1].value.spectra[0].data[0].x.length);*/
             result[1].value.spectra[0].dataType.should.equal("NMR Spectrum");
+            result[0].value.spectra.length.should.equal(2);
+
         });
     });
 
     describe('Test with pseudo SER file', function() {
         var zip  = fs.readFileSync("test/zip/21-BOMA-new.zip");
         var result = convertZIP(zip, {xy: true, keepSpectra: true, noContours: true});
-        console.log(result[0].value)
-        it.only('StarX', function () {
+        it('N spectra', function () {
             result.length.should.equal(2);
         });
 
-        it('StopX', function () {
-            var result = convertZIP(zip, {xy: true, keepSpectra: true});
-        });
-
-        it('Other parameters', function () {
+        it.only('First and lastX', function () {
             var result = convertZIP(zip, {xy: true, keepSpectra: true});
             result[0].value.spectra[0].dataType.should.equal("NMR FID");
-            result[1].value.spectra[0].dataType.should.equal("NMR Spectrum");
+            result[1].value.spectra[0].dataType.should.equal("NMR FID");
+
+            result[0].value.spectra.length.should.equal(88);
+            result[1].value.spectra.length.should.equal(88);
+
+            result[0].value.spectra[0].firstX.should.equal(0);
+            result[0].value.spectra[0].lastX.should.equal(15.0232497409271);
+
+            result[1].value.spectra[0].firstX.should.equal(0);
+            result[1].value.spectra[0].lastX.should.equal(15.0232497409271);
         });
     });
 });
