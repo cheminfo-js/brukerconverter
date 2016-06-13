@@ -57,8 +57,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	"use strict";
 
 	const Converter = __webpack_require__(1);
-	const IOBuffer = __webpack_require__(2);
-	const JSZip = __webpack_require__(3);
+	const IOBuffer = __webpack_require__(3);
+	const JSZip = __webpack_require__(4);
 
 	// constants
 	var BINARY = 1;
@@ -103,7 +103,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	            return files[relativePath] ? true : false;
 	        });
 	        var brukerFiles = {};
-
+	        if(name.indexOf("pdata")>=0){
+	            brukerFiles['acqus'] = zip.file(name.replace(/pdata\/[0-9]\//,"acqus")).asText();
+	        }
 	        for(var j = 0; j < currFiles.length; ++j) {
 	            var idx = currFiles[j].name.lastIndexOf('/');
 	            var name = currFiles[j].name.substr(idx + 1);
@@ -169,9 +171,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 
 	function convert1D(files, options) {
-	    if(files['1r'] || files['1i']) {
-	        var result = parseData(files["procs"], options);
+	    var result = parseData(files["procs"], options);
+	    var temp = parseData(files['acqus'], options);
 
+	    var keys = Object.keys(temp.info);
+	    for (var i = 0; i < keys.length; i++) {
+	        var currKey = keys[i];
+	        if(result.info[currKey] === undefined) {
+	            result.info[currKey] = temp.info[currKey];
+	        }
+	    }
+
+	    if(files['1r'] || files['1i']) {
 	        if(files['1r']) {
 	            setXYSpectrumData(files['1r'], result, '1r', true);
 	        }
@@ -179,7 +190,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	            setXYSpectrumData(files['1i'], result, '1i', false);
 	        }
 	    } else if(files['fid']) {
-	        result = parseData(files['procs'], options);
+	        setFIDSpectrumData(files['fid'], result)
+	    }
+	    
+	    return result;
+	}
+
+	function convert2D(files, options) {
+	    var SF,SW_p,SW,offset;
+	    if(files['2rr']) {
+	        var result = parseData(files['procs'], options);
 	        var temp = parseData(files['acqus'], options);
 
 	        var keys = Object.keys(temp.info);
@@ -189,16 +209,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	                result.info[currKey] = temp.info[currKey];
 	            }
 	        }
-	        setFIDSpectrumData(files['fid'], result)
-	    }
-	    return result;
-	}
-
-	function convert2D(files, options) {
-	    var SF,SW_p,offset;
-	    if(files['2rr']) {
-	        var result = parseData(files['procs'], options);
-	        var temp = parseData(files['proc2s'], options);
+	        
+	        temp = parseData(files['proc2s'], options);
 	        result.info.nbSubSpectra = temp.info['$SI'] = parseInt(temp.info['$SI']);
 	        SF = temp.info['$SF'] = parseFloat(temp.info['$SF']);
 	        SW_p = temp.info['$SWP'] = parseFloat(temp.info['$SWP']);
@@ -209,11 +221,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	        temp = parseData(files['acqu2s'], options);
 	        result.info.nbSubSpectra = temp.info['$SI'] = parseInt(temp.info['$TD']);
 	        result.info['$SI'] = parseInt(result.info['$TD']);
-	        SW_p = temp.info['$SWH'] = parseFloat(temp.info['$SWH']);
+	        //SW_p = temp.info['$SWH'] = parseFloat(temp.info['$SWH']);
+
+	        SW_p = temp.info["$SW"];
+
 	        result.info["$SWP"]=result.info["$SWH"];
 	        result.info["$SF"]=parseFloat(temp.info['$SFO1']);
 	        result.info['$OFFSET']=0;
-	        SF = temp.info['$SFO2'] = parseFloat(temp.info['$SFO2']);
+	        SF = temp.info['$SFO1'] = parseFloat(temp.info['$SFO1']);
+	        SF = 1;
 	        offset=0;
 	        result.info['$AXNUC']=result.info['$NUC1'];
 	        temp.info['$AXNUC']=temp.info['$NUC1'];
@@ -231,17 +247,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if(files['2rr']) {
 	        setXYSpectrumData(files['2rr'], result, '2rr', true);
 	    } else if(files['ser']) {
-	        setXYSpectrumData(files['ser'], result, 'ser', true);
+	        setFIDSpectrumData(files['ser'], result, 'ser', true);
 	    }
 
 	    for(var i = 0; i < nbSubSpectra; i++) {
 	        pageValue+=deltaY;
 	        result.spectra[i].pageValue=pageValue;
-	        if(files['2rr']) {
-	            result.spectra[i].setYUnits = 'PPM';
-	        } else if(files['ser']) {
-	            result.spectra[i].setYUnits = 'HZ';
-	        }
 	    }
 
 	    var dataType = files['ser'] ? 'TYPE_2DNMR_FID' : 'TYPE_2DNMR_SPECTRUM';
@@ -350,8 +361,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var DW = AQ/(td-1);
 
 	    //console.log(DW+" "+SW+" "+td);
-
-
 	    var endian = parseInt(spectra.info["$BYTORDP"]);
 	    endian = endian ? 0 : 1;
 
@@ -360,7 +369,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	    else
 	        file.setBigEndian();
 
-	    for(var i = 0; i < 2; ++i) {
+	    var nbSubSpectra = spectra.info.nbSubSpectra ? spectra.info.nbSubSpectra : 1;
+	    spectra.spectra = new Array(nbSubSpectra);
+	    
+	    for(var j = 0; j < nbSubSpectra/2; j++) {
 	        var toSave = {
 	            dataType : "NMR FID",
 	            dataTable : "(X++(R..R))",
@@ -368,7 +380,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            firstX : 0,
 	            lastX : AQ,
 	            nucleus : spectra.info["$NUC1"] ? spectra.info["$NUC1"] : undefined,
-	            xUnit : "Hz",
+	            xUnit : "Sec",
 	            yUnit : "Arbitrary",
 	            data:[new Array(2*td)],//[{x:new Array(td),y:new Array(td)}],
 	            isXYdata:true,
@@ -376,36 +388,49 @@ return /******/ (function(modules) { // webpackBootstrap
 	            title:spectra.info['TITLE'],
 	            deltaX:DW
 	        };
-	        spectra.spectra.push(toSave);
-	    }
+	        spectra.spectra[j*2] = toSave;
 
-	    var x = 0;
+	        toSave = {
+	            dataType : "NMR FID",
+	            dataTable : "(X++(I..I))",
+	            nbPoints : td,
+	            firstX : 0,
+	            lastX : AQ,
+	            nucleus : spectra.info["$NUC1"] ? spectra.info["$NUC1"] : undefined,
+	            xUnit : "Sec",
+	            yUnit : "Arbitrary",
+	            data:[new Array(2*td)],//[{x:new Array(td),y:new Array(td)}],
+	            isXYdata:true,
+	            observeFrequency:SF,
+	            title:spectra.info['TITLE'],
+	            deltaX:DW
+	        };
+	        spectra.spectra[j*2+1] = toSave;
+	        
+	        var x = 0;
+	        var y;
+	        for(var i = 0; file.available(8)&&i<td; i++, x = i*DW) {
+	            y = file.readInt32();
+	            if(y===null || isNaN(y)){
+	                y=0;
+	            }
+	            spectra.spectra[j*2].data[0][2*i+1] = y;
+	            spectra.spectra[j*2].data[0][2*i] = x;
+	            y = file.readInt32();
+	            if(y===null || isNaN(y)){
+	                y=0;
+	            }
+	            spectra.spectra[j*2+1].data[0][2*i+1] = y;
+	            spectra.spectra[j*2+1].data[0][2*i] = x;
 
-	    var y;
-	    for(i = 0; file.available(8); ++i, x += DW) {
-	        y = file.readInt32();
-	        if(y===null || isNaN(y)){
-	            y=0;
 	        }
-	        spectra.spectra[0].data[0][2*i+1] = y;
-	        spectra.spectra[0].data[0][2*i] = x;
-	        y = file.readInt32();
-	        if(y===null || isNaN(y)){
-	            y=0;
-	        }
-	        if(y===null || isNaN(y)){
-	            y=0;
-	        }
-	        spectra.spectra[1].data[0][2*i+1] = y;
-	        spectra.spectra[1].data[0][2*i] = x;
 
-	    }
-
-	    for(; i < td; ++i, x += DW) {
-	        spectra.spectra[0].data[0][2*i+1] = 0;
-	        spectra.spectra[0].data[0][2*i] = x;
-	        spectra.spectra[1].data[0][2*i+1] = 0;
-	        spectra.spectra[1].data[0][2*i] = x;
+	        for(; i < td; i++, x = i*DW) {
+	            spectra.spectra[j*2].data[0][2*i+1] = 0;
+	            spectra.spectra[j*2].data[0][2*i] = x;
+	            spectra.spectra[j*2+1].data[0][2*i+1] = 0;
+	            spectra.spectra[j*2+1].data[0][2*i] = x;
+	        }
 	    }
 	}
 
@@ -577,18 +602,17 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 1 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
+
+	var parseXYDataRegExp = __webpack_require__(2);
+
 
 	function getConverter() {
 
 	    // the following RegExp can only be used for XYdata, some peakTables have values with a "E-5" ...
-	    var xyDataSplitRegExp = /[,\t \+-]*(?=[^\d,\t \.])|[ \t]+(?=[\d+\.-])/;
-	    var removeCommentRegExp = /\$\$.*/;
-	    var peakTableSplitRegExp = /[,\t ]+/;
 	    var ntuplesSeparator = /[, \t]{1,}/;
-	    var DEBUG = false;
 
 	    var GC_MS_FIELDS = ['TIC', '.RIC', 'SCANNUMBER'];
 
@@ -600,6 +624,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	        }
 	        return floatArray;
 	    }
+	    
+	    function Spectrum() {
+	        
+	    }
 
 	    /*
 	     options.keepSpectra: keep the original spectra for a 2D
@@ -610,10 +638,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	    function convert(jcamp, options) {
 	        options = options || {};
 
-	        var keepRecordsRegExp=/^$/;
-	        if (options.keepRecordsRegExp) keepRecordsRegExp=options.keepRecordsRegExp;
+	        var keepRecordsRegExp = /^$/;
+	        if (options.keepRecordsRegExp) keepRecordsRegExp = options.keepRecordsRegExp;
 
-	        var start = new Date();
+	        var start = Date.now();
 
 	        var ntuples = {},
 	            ldr,
@@ -628,16 +656,22 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var spectra = [];
 	        result.spectra = spectra;
 	        result.info = {};
-	        var spectrum = {};
+	        var spectrum = new Spectrum();
 
 	        if (!(typeof jcamp === 'string')) return result;
 	        // console.time('start');
 
-	        if (result.profiling) result.profiling.push({action: 'Before split to LDRS', time: new Date() - start});
+	        if (result.profiling) result.profiling.push({
+	            action: 'Before split to LDRS',
+	            time: Date.now() - start
+	        });
 
 	        ldrs = jcamp.split(/[\r\n]+##/);
 
-	        if (result.profiling) result.profiling.push({action: 'Split to LDRS', time: new Date() - start});
+	        if (result.profiling) result.profiling.push({
+	            action: 'Split to LDRS',
+	            time: Date.now() - start
+	        });
 
 	        if (ldrs[0]) ldrs[0] = ldrs[0].replace(/^[\r\n ]*##/, '');
 
@@ -797,17 +831,24 @@ return /******/ (function(modules) { // webpackBootstrap
 	                prepareSpectrum(result, spectrum);
 	                // well apparently we should still consider it is a PEAK TABLE if there are no '++' after
 	                if (dataValue.match(/.*\+\+.*/)) {
-	                    parseXYData(spectrum, dataValue, result);
+	                    if (options.fastParse === false) {
+	                        parseXYDataRegExp(spectrum, dataValue, result);
+	                    } else {
+	                        if (!spectrum.deltaX) {
+	                            spectrum.deltaX = (spectrum.lastX - spectrum.firstX) / (spectrum.nbPoints - 1);
+	                        }
+	                        fastParseXYData(spectrum, dataValue, result);
+	                    }
 	                } else {
 	                    parsePeakTable(spectrum, dataValue, result);
 	                }
 	                spectra.push(spectrum);
-	                spectrum = {};
+	                spectrum = new Spectrum();
 	            } else if (dataLabel === 'PEAKTABLE') {
 	                prepareSpectrum(result, spectrum);
 	                parsePeakTable(spectrum, dataValue, result);
 	                spectra.push(spectrum);
-	                spectrum = {};
+	                spectrum = new Spectrum();
 	            } else if (isMSField(dataLabel)) {
 	                spectrum[convertMSFieldToLabel(dataLabel)] = dataValue;
 	            }
@@ -816,54 +857,57 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }
 	        }
 
-	        // Currently disabled
-	        //    if (options && options.lowRes) addLowRes(spectra,options);
+	        if (result.profiling) result.profiling.push({
+	            action: 'Finished parsing',
+	            time: Date.now() - start
+	        });
 
-	        if (result.profiling) result.profiling.push({action: 'Finished parsing', time: new Date() - start});
-
-	        if (Object.keys(ntuples).length>0) {
-	            var newNtuples=[];
-	            var keys=Object.keys(ntuples);
-	            for (var i=0; i<keys.length; i++) {
-	                var key=keys[i];
-	                var values=ntuples[key];
-	                for (var j=0; j<values.length; j++) {
-	                    if (! newNtuples[j]) newNtuples[j]={};
-	                    newNtuples[j][key]=values[j];
+	        if (Object.keys(ntuples).length > 0) {
+	            var newNtuples = [];
+	            var keys = Object.keys(ntuples);
+	            for (var i = 0; i < keys.length; i++) {
+	                var key = keys[i];
+	                var values = ntuples[key];
+	                for (var j = 0; j < values.length; j++) {
+	                    if (!newNtuples[j]) newNtuples[j] = {};
+	                    newNtuples[j][key] = values[j];
 	                }
 	            }
-	            result.ntuples=newNtuples;
+	            result.ntuples = newNtuples;
 	        }
 
 	        if (result.twoD) {
-	            add2D(result);
+	            add2D(result, options);
 	            if (result.profiling) result.profiling.push({
 	                action: 'Finished countour plot calculation',
-	                time: new Date() - start
+	                time: Date.now() - start
 	            });
 	            if (!options.keepSpectra) {
 	                delete result.spectra;
 	            }
 	        }
 
-	        var isGCMS = (spectra.length > 1 && (! spectra[0].dataType || spectra[0].dataType.match(/.*mass.*/i)));
+	        var isGCMS = (spectra.length > 1 && (!spectra[0].dataType || spectra[0].dataType.match(/.*mass.*/i)));
 	        if (isGCMS && options.newGCMS) {
 	            options.xy = true;
 	        }
 
 	        if (options.xy) { // the spectraData should not be a oneD array but an object with x and y
 	            if (spectra.length > 0) {
-	                for (var i=0; i<spectra.length; i++) {
-	                    var spectrum=spectra[i];
-	                    if (spectrum.data.length>0) {
-	                        for (var j=0; j<spectrum.data.length; j++) {
-	                            var data=spectrum.data[j];
-	                            var newData={x: new Array(data.length/2), y:new Array(data.length/2)};
-	                            for (var k=0; k<data.length; k=k+2) {
-	                                newData.x[k/2]=data[k];
-	                                newData.y[k/2]=data[k+1];
+	                for (var i = 0; i < spectra.length; i++) {
+	                    var spectrum = spectra[i];
+	                    if (spectrum.data.length > 0) {
+	                        for (var j = 0; j < spectrum.data.length; j++) {
+	                            var data = spectrum.data[j];
+	                            var newData = {
+	                                x: new Array(data.length / 2),
+	                                y: new Array(data.length / 2)
+	                            };
+	                            for (var k = 0; k < data.length; k = k + 2) {
+	                                newData.x[k / 2] = data[k];
+	                                newData.y[k / 2] = data[k + 1];
 	                            }
-	                            spectrum.data[j]=newData;
+	                            spectrum.data[j] = newData;
 	                        }
 
 	                    }
@@ -881,12 +925,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }
 	            if (result.profiling) result.profiling.push({
 	                action: 'Finished GCMS calculation',
-	                time: new Date() - start
+	                time: Date.now() - start
 	            });
 	        }
 
 	        if (result.profiling) {
-	            result.profiling.push({action: 'Total time', time: new Date() - start});
+	            result.profiling.push({
+	                action: 'Total time',
+	                time: Date.now() - start
+	            });
 	        }
 
 	        return result;
@@ -903,7 +950,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    function addNewGCMS(result) {
 	        var spectra = result.spectra;
-	        var length  = spectra.length;
+	        var length = spectra.length;
 	        var gcms = {
 	            times: new Array(length),
 	            series: [{
@@ -951,7 +998,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                existingGCMSFields.push(label);
 	            }
 	        }
-	        if (existingGCMSFields.length===0) return;
+	        if (existingGCMSFields.length === 0) return;
 	        var gcms = {};
 	        gcms.gc = {};
 	        gcms.ms = [];
@@ -964,7 +1011,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                gcms.gc[existingGCMSFields[j]].push(spectrum.pageValue);
 	                gcms.gc[existingGCMSFields[j]].push(parseFloat(spectrum[existingGCMSFields[j]]));
 	            }
-	          if (spectrum.data) gcms.ms[i] = spectrum.data[0];
+	            if (spectrum.data) gcms.ms[i] = spectrum.data[0];
 
 	        }
 	        result.gcms = gcms;
@@ -989,154 +1036,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	        }
 	    }
 
-	    function parsePeakTable(spectrum, value, result) {
-	        spectrum.isPeaktable=true;
-	        var i, ii, j, jj, values;
-	        var currentData = [];
-	        spectrum.data = [currentData];
-
-	        // counts for around 20% of the time
-	        var lines = value.split(/,? *,?[;\r\n]+ */);
-
-	        var k = 0;
-	        for (i = 1, ii = lines.length; i < ii; i++) {
-	            values = lines[i].trim().replace(removeCommentRegExp, '').split(peakTableSplitRegExp);
-	            if (values.length % 2 === 0) {
-	                for (j = 0, jj = values.length; j < jj; j = j + 2) {
-	                    // takes around 40% of the time to add and parse the 2 values nearly exclusively because of parseFloat
-	                    currentData[k++] = (parseFloat(values[j]) * spectrum.xFactor);
-	                    currentData[k++] = (parseFloat(values[j + 1]) * spectrum.yFactor);
-	                }
-	            } else {
-	                result.logs.push('Format error: ' + values);
-	            }
-	        }
-	    }
-
-	    function parseXYData(spectrum, value, result) {
-	        // we check if deltaX is defined otherwise we calculate it
-	        if (!spectrum.deltaX) {
-	            spectrum.deltaX = (spectrum.lastX - spectrum.firstX) / (spectrum.nbPoints - 1);
-	        }
-
-	        spectrum.isXYdata=true;
-
-	        var currentData = [];
-	        spectrum.data = [currentData];
-
-	        var currentX = spectrum.firstX;
-	        var currentY = spectrum.firstY;
-	        var lines = value.split(/[\r\n]+/);
-	        var lastDif, values, ascii, expectedY;
-	        values = [];
-	        for (var i = 1, ii = lines.length; i < ii; i++) {
-	            //var previousValues=JSON.parse(JSON.stringify(values));
-	            values = lines[i].trim().replace(removeCommentRegExp, '').split(xyDataSplitRegExp);
-	            if (values.length > 0) {
-	                if (DEBUG) {
-	                    if (!spectrum.firstPoint) {
-	                        spectrum.firstPoint = parseFloat(values[0]);
-	                    }
-	                    var expectedCurrentX = parseFloat(values[0] - spectrum.firstPoint) * spectrum.xFactor + spectrum.firstX;
-	                    if ((lastDif || lastDif === 0)) {
-	                        expectedCurrentX += spectrum.deltaX;
-	                    }
-	                    result.logs.push('Checking X value: currentX: ' + currentX + ' - expectedCurrentX: ' + expectedCurrentX);
-	                }
-	                for (var j = 1, jj = values.length; j < jj; j++) {
-	                    if (j === 1 && (lastDif || lastDif === 0)) {
-	                        lastDif = null; // at the beginning of each line there should be the full value X / Y so the diff is always undefined
-	                        // we could check if we have the expected Y value
-	                        ascii = values[j].charCodeAt(0);
-
-	                        if (false) { // this code is just to check the jcamp DIFDUP and the next line repeat of Y value
-	                            // + - . 0 1 2 3 4 5 6 7 8 9
-	                            if ((ascii === 43) || (ascii === 45) || (ascii === 46) || ((ascii > 47) && (ascii < 58))) {
-	                                expectedY = parseFloat(values[j]);
-	                            } else
-	                            // positive SQZ digits @ A B C D E F G H I (ascii 64-73)
-	                            if ((ascii > 63) && (ascii < 74)) {
-	                                // we could use parseInt but parseFloat is faster at least in Chrome
-	                                expectedY = parseFloat(String.fromCharCode(ascii - 16) + values[j].substring(1));
-	                            } else
-	                            // negative SQZ digits a b c d e f g h i (ascii 97-105)
-	                            if ((ascii > 96) && (ascii < 106)) {
-	                                // we could use parseInt but parseFloat is faster at least in Chrome
-	                                expectedY = -parseFloat(String.fromCharCode(ascii - 48) + values[j].substring(1));
-	                            }
-	                            if (expectedY !== currentY) {
-	                                result.logs.push('Y value check error: Found: ' + expectedY + ' - Current: ' + currentY);
-	                                result.logs.push('Previous values: ' + previousValues.length);
-	                                result.logs.push(previousValues);
-	                            }
-	                        }
-	                    } else {
-	                        if (values[j].length > 0) {
-	                            ascii = values[j].charCodeAt(0);
-	                            // + - . 0 1 2 3 4 5 6 7 8 9
-	                            if ((ascii === 43) || (ascii === 45) || (ascii === 46) || ((ascii > 47) && (ascii < 58))) {
-	                                lastDif = null;
-	                                currentY = parseFloat(values[j]);
-	                                currentData.push(currentX, currentY * spectrum.yFactor);;
-	                                currentX += spectrum.deltaX;
-	                            } else
-	                            // positive SQZ digits @ A B C D E F G H I (ascii 64-73)
-	                            if ((ascii > 63) && (ascii < 74)) {
-	                                lastDif = null;
-	                                currentY = parseFloat(String.fromCharCode(ascii - 16) + values[j].substring(1));
-	                                currentData.push(currentX, currentY * spectrum.yFactor);;
-	                                currentX += spectrum.deltaX;
-	                            } else
-	                            // negative SQZ digits a b c d e f g h i (ascii 97-105)
-	                            if ((ascii > 96) && (ascii < 106)) {
-	                                lastDif = null;
-	                                currentY = -parseFloat(String.fromCharCode(ascii - 48) + values[j].substring(1));
-	                                currentData.push(currentX, currentY * spectrum.yFactor);;
-	                                currentX += spectrum.deltaX;
-	                            } else
-
-
-
-	                            // DUP digits S T U V W X Y Z s (ascii 83-90, 115)
-	                            if (((ascii > 82) && (ascii < 91)) || (ascii === 115)) {
-	                                var dup = parseFloat(String.fromCharCode(ascii - 34) + values[j].substring(1)) - 1;
-	                                if (ascii === 115) {
-	                                    dup = parseFloat('9' + values[j].substring(1)) - 1;
-	                                }
-	                                for (var l = 0; l < dup; l++) {
-	                                    if (lastDif) {
-	                                        currentY = currentY + lastDif;
-	                                    }
-	                                    currentData.push(currentX, currentY * spectrum.yFactor);;
-	                                    currentX += spectrum.deltaX;
-	                                }
-	                            } else
-	                            // positive DIF digits % J K L M N O P Q R (ascii 37, 74-82)
-	                            if (ascii === 37) {
-	                                lastDif = parseFloat('0' + values[j].substring(1));
-	                                currentY += lastDif;
-	                                currentData.push(currentX, currentY * spectrum.yFactor);;
-	                                currentX += spectrum.deltaX;
-	                            } else if ((ascii > 73) && (ascii < 83)) {
-	                                lastDif = parseFloat(String.fromCharCode(ascii - 25) + values[j].substring(1));
-	                                currentY += lastDif;
-	                                currentData.push(currentX, currentY * spectrum.yFactor);;
-	                                currentX += spectrum.deltaX;
-	                            } else
-	                            // negative DIF digits j k l m n o p q r (ascii 106-114)
-	                            if ((ascii > 105) && (ascii < 115)) {
-	                                lastDif = -parseFloat(String.fromCharCode(ascii - 57) + values[j].substring(1));
-	                                currentY += lastDif;
-	                                currentData.push(currentX, currentY * spectrum.yFactor);;
-	                                currentX += spectrum.deltaX;
-	                            }
-	                        }
-	                    }
-	                }
-	            }
-	        }
-
-	    }
 
 	    function convertTo3DZ(spectra) {
 	        var noise = 0;
@@ -1147,19 +1046,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var z = new Array(ySize);
 	        for (var i = 0; i < ySize; i++) {
 	            z[i] = new Array(xSize);
+	            var xVector = spectra[i].data[0];
 	            for (var j = 0; j < xSize; j++) {
-	                z[i][j] = spectra[i].data[0][j * 2 + 1];
-	                if (z[i][j] < minZ) minZ = spectra[i].data[0][j * 2 + 1];
-	                if (z[i][j] > maxZ) maxZ = spectra[i].data[0][j * 2 + 1];
+	                var value = xVector[j * 2 + 1];
+	                z[i][j] = value;
+	                if (value < minZ) minZ = value;
+	                if (value > maxZ) maxZ = value;
 	                if (i !== 0 && j !== 0) {
-	                    noise += Math.abs(z[i][j] - z[i][j - 1]) + Math.abs(z[i][j] - z[i - 1][j]);
+	                    noise += Math.abs(value - z[i][j - 1]) + Math.abs(value - z[i - 1][j]);
 	                }
 	            }
 	        }
 	        return {
 	            z: z,
 	            minX: spectra[0].data[0][0],
-	            maxX: spectra[0].data[0][spectra[0].data[0].length - 2],
+	            maxX: spectra[0].data[0][spectra[0].data[0].length - 2], // has to be -2 because it is a 1D array [x,y,x,y,...]
 	            minY: spectra[0].pageValue,
 	            maxY: spectra[ySize - 1].pageValue,
 	            minZ: minZ,
@@ -1169,22 +1070,22 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    }
 
-	    function add2D(result) {
+	    function add2D(result, options) {
 	        var zData = convertTo3DZ(result.spectra);
-	        result.contourLines = generateContourLines(zData);
+	        result.contourLines = generateContourLines(zData, options);
 	        delete zData.z;
 	        result.minMax = zData;
 	    }
 
 
 	    function generateContourLines(zData, options) {
-	        //console.time('generateContourLines');
 	        var noise = zData.noise;
 	        var z = zData.z;
 	        var contourLevels = [];
-	        var nbLevels = 7;
-	        var povarHeight = new Float32Array(4);
-	        var isOver = [];
+	        var nbLevels = options.nbContourLevels || 7;
+	        var noiseMultiplier = options.noiseMultiplier === undefined ? 5 : options.noiseMultiplier;
+	        var povarHeight0, povarHeight1, povarHeight2, povarHeight3;
+	        var isOver0, isOver1, isOver2, isOver3;
 	        var nbSubSpectra = z.length;
 	        var nbPovars = z[0].length;
 	        var pAx, pAy, pBx, pBy;
@@ -1212,12 +1113,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var lineZValue;
 	        for (var level = 0; level < nbLevels * 2; level++) { // multiply by 2 for positif and negatif
 	            var contourLevel = {};
-	            contourLevels.push(contourLevel);
+	            contourLevels[level] = contourLevel;
 	            var side = level % 2;
+	            var factor = (maxZ - noiseMultiplier * noise) * Math.exp((level >> 1) - nbLevels);
 	            if (side === 0) {
-	                lineZValue = (maxZ - 5 * noise) * Math.exp(level / 2 - nbLevels) + 5 * noise;
+	                lineZValue = factor + noiseMultiplier * noise;
 	            } else {
-	                lineZValue = -(maxZ - 5 * noise) * Math.exp(level / 2 - nbLevels) - 5 * noise;
+	                lineZValue = -factor - noiseMultiplier * noise;
 	            }
 	            var lines = [];
 	            contourLevel.zValue = lineZValue;
@@ -1226,62 +1128,84 @@ return /******/ (function(modules) { // webpackBootstrap
 	            if (lineZValue <= minZ || lineZValue >= maxZ) continue;
 
 	            for (var iSubSpectra = 0; iSubSpectra < nbSubSpectra - 1; iSubSpectra++) {
+	                var subSpectra = z[iSubSpectra];
+	                var subSpectraAfter = z[iSubSpectra + 1];
 	                for (var povar = 0; povar < nbPovars - 1; povar++) {
-	                    povarHeight[0] = z[iSubSpectra][povar];
-	                    povarHeight[1] = z[iSubSpectra][povar + 1];
-	                    povarHeight[2] = z[(iSubSpectra + 1)][povar];
-	                    povarHeight[3] = z[(iSubSpectra + 1)][(povar + 1)];
+	                    povarHeight0 = subSpectra[povar];
+	                    povarHeight1 = subSpectra[povar + 1];
+	                    povarHeight2 = subSpectraAfter[povar];
+	                    povarHeight3 = subSpectraAfter[povar + 1];
 
-	                    for (var i = 0; i < 4; i++) {
-	                        isOver[i] = (povarHeight[i] > lineZValue);
-	                    }
+	                    isOver0 = (povarHeight0 > lineZValue);
+	                    isOver1 = (povarHeight1 > lineZValue);
+	                    isOver2 = (povarHeight2 > lineZValue);
+	                    isOver3 = (povarHeight3 > lineZValue);
 
 	                    // Example povar0 is over the plane and povar1 and
 	                    // povar2 are below, we find the varersections and add
 	                    // the segment
-	                    if (isOver[0] !== isOver[1] && isOver[0] !== isOver[2]) {
-	                        pAx = povar + (lineZValue - povarHeight[0]) / (povarHeight[1] - povarHeight[0]);
+	                    if (isOver0 !== isOver1 && isOver0 !== isOver2) {
+	                        pAx = povar + (lineZValue - povarHeight0) / (povarHeight1 - povarHeight0);
 	                        pAy = iSubSpectra;
 	                        pBx = povar;
-	                        pBy = iSubSpectra + (lineZValue - povarHeight[0]) / (povarHeight[2] - povarHeight[0]);
-	                        lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+	                        pBy = iSubSpectra + (lineZValue - povarHeight0) / (povarHeight2 - povarHeight0);
+	                        lines.push(pAx * dx + x0);
+	                        lines.push(pAy * dy + y0);
+	                        lines.push(pBx * dx + x0);
+	                        lines.push(pBy * dy + y0);
 	                    }
-	                    if (isOver[3] !== isOver[1] && isOver[3] !== isOver[2]) {
+	                    // remove push does not help !!!!
+	                    if (isOver3 !== isOver1 && isOver3 !== isOver2) {
 	                        pAx = povar + 1;
-	                        pAy = iSubSpectra + 1 - (lineZValue - povarHeight[3]) / (povarHeight[1] - povarHeight[3]);
-	                        pBx = povar + 1 - (lineZValue - povarHeight[3]) / (povarHeight[2] - povarHeight[3]);
+	                        pAy = iSubSpectra + 1 - (lineZValue - povarHeight3) / (povarHeight1 - povarHeight3);
+	                        pBx = povar + 1 - (lineZValue - povarHeight3) / (povarHeight2 - povarHeight3);
 	                        pBy = iSubSpectra + 1;
-	                        lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+	                        lines.push(pAx * dx + x0);
+	                        lines.push(pAy * dy + y0);
+	                        lines.push(pBx * dx + x0);
+	                        lines.push(pBy * dy + y0);
 	                    }
 	                    // test around the diagonal
-	                    if (isOver[1] !== isOver[2]) {
-	                        pAx = povar + 1 - (lineZValue - povarHeight[1]) / (povarHeight[2] - povarHeight[1]);
-	                        pAy = iSubSpectra + (lineZValue - povarHeight[1]) / (povarHeight[2] - povarHeight[1]);
-	                        if (isOver[1] !== isOver[0]) {
-	                            pBx = povar + 1 - (lineZValue - povarHeight[1]) / (povarHeight[0] - povarHeight[1]);
+	                    if (isOver1 !== isOver2) {
+	                        pAx = (povar + 1 - (lineZValue - povarHeight1) / (povarHeight2 - povarHeight1)) * dx + x0;
+	                        pAy = (iSubSpectra + (lineZValue - povarHeight1) / (povarHeight2 - povarHeight1)) * dy + y0;
+	                        if (isOver1 !== isOver0) {
+	                            pBx = povar + 1 - (lineZValue - povarHeight1) / (povarHeight0 - povarHeight1);
 	                            pBy = iSubSpectra;
-	                            lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+	                            lines.push(pAx);
+	                            lines.push(pAy);
+	                            lines.push(pBx * dx + x0);
+	                            lines.push(pBy * dy + y0);
 	                        }
-	                        if (isOver[2] !== isOver[0]) {
+	                        if (isOver2 !== isOver0) {
 	                            pBx = povar;
-	                            pBy = iSubSpectra + 1 - (lineZValue - povarHeight[2]) / (povarHeight[0] - povarHeight[2]);
-	                            lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+	                            pBy = iSubSpectra + 1 - (lineZValue - povarHeight2) / (povarHeight0 - povarHeight2);
+	                            lines.push(pAx);
+	                            lines.push(pAy);
+	                            lines.push(pBx * dx + x0);
+	                            lines.push(pBy * dy + y0);
 	                        }
-	                        if (isOver[1] !== isOver[3]) {
+	                        if (isOver1 !== isOver3) {
 	                            pBx = povar + 1;
-	                            pBy = iSubSpectra + (lineZValue - povarHeight[1]) / (povarHeight[3] - povarHeight[1]);
-	                            lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+	                            pBy = iSubSpectra + (lineZValue - povarHeight1) / (povarHeight3 - povarHeight1);
+	                            lines.push(pAx);
+	                            lines.push(pAy);
+	                            lines.push(pBx * dx + x0);
+	                            lines.push(pBy * dy + y0);
 	                        }
-	                        if (isOver[2] !== isOver[3]) {
-	                            pBx = povar + (lineZValue - povarHeight[2]) / (povarHeight[3] - povarHeight[2]);
+	                        if (isOver2 !== isOver3) {
+	                            pBx = povar + (lineZValue - povarHeight2) / (povarHeight3 - povarHeight2);
 	                            pBy = iSubSpectra + 1;
-	                            lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+	                            lines.push(pAx);
+	                            lines.push(pAy);
+	                            lines.push(pBx * dx + x0);
+	                            lines.push(pBy * dy + y0);
 	                        }
 	                    }
 	                }
 	            }
 	        }
-	        // console.timeEnd('generateContourLines');
+
 	        return {
 	            minX: zData.minX,
 	            maxX: zData.maxX,
@@ -1289,39 +1213,217 @@ return /******/ (function(modules) { // webpackBootstrap
 	            maxY: zData.maxY,
 	            segments: contourLevels
 	        };
-	        //return contourLevels;
 	    }
 
+	    function fastParseXYData(spectrum, value) {
+	        // TODO need to deal with result
+	        //  console.log(value);
+	        // we check if deltaX is defined otherwise we calculate it
 
-	    function addLowRes(spectra, options) {
-	        var spectrum;
-	        var averageX, averageY;
-	        var targetNbPoints = options.lowRes;
-	        var highResData;
-	        for (var i = 0; i < spectra.length; i++) {
-	            spectrum = spectra[i];
-	            // we need to find the current higher resolution
-	            if (spectrum.data.length > 0) {
-	                highResData = spectrum.data[0];
-	                for (var j = 1; j < spectrum.data.length; j++) {
-	                    if (spectrum.data[j].length > highResData.length) {
-	                        highResData = spectrum.data[j];
-	                    }
-	                }
+	        var yFactor = spectrum.yFactor;
+	        var deltaX = spectrum.deltaX;
 
-	                if (targetNbPoints > (highResData.length / 2)) return;
-	                var i, ii;
-	                var lowResData = [];
-	                var modulo = Math.ceil(highResData.length / (targetNbPoints * 2));
-	                for (i = 0, ii = highResData.length; i < ii; i = i + 2) {
-	                    if (i % modulo === 0) {
-	                        lowResData.push(highResData[i], highResData[i + 1])
-	                    }
+
+	        spectrum.isXYdata = true;
+	        // TODO to be improved using 2 array {x:[], y:[]}
+	        var currentData = [];
+	        var currentPosition = 0;
+	        spectrum.data = [currentData];
+
+
+	        var currentX = spectrum.firstX;
+	        var currentY = spectrum.firstY;
+
+	        // we skip the first line
+	        //
+	        var endLine = false;
+	        for (var i = 0; i < value.length; i++) {
+	            var ascii = value.charCodeAt(i);
+	            if (ascii === 13 || ascii === 10) {
+	                endLine = true;
+	            } else {
+	                if (endLine) break;
+	            }
+	        }
+
+	        // we proceed taking the i after the first line
+	        var newLine = true;
+	        var isDifference = false;
+	        var isLastDifference = false;
+	        var lastDifference = 0;
+	        var isDuplicate = false;
+	        var inComment = false;
+	        var currentValue = 0;
+	        var isNegative = false;
+	        var inValue = false;
+	        var skipFirstValue = false;
+	        var decimalPosition = 0;
+	        var ascii;
+	        for (; i <= value.length; i++) {
+	            if (i === value.length) ascii = 13;
+	            else ascii = value.charCodeAt(i);
+	            if (inComment) {
+	                // we should ignore the text if we are after $$
+	                if (ascii === 13 || ascii === 10) {
+	                    newLine = true;
+	                    inComment = false;
 	                }
-	                spectrum.data.push(lowResData);
+	            } else {
+	                // when is it a new value ?
+	                // when it is not a digit, . or comma
+	                // it is a number that is either new or we continue
+	                if (ascii <= 57 && ascii >= 48) { // a number
+	                    inValue = true;
+	                    if (decimalPosition > 0) {
+	                        currentValue += (ascii - 48) / Math.pow(10, decimalPosition++);
+	                    } else {
+	                        currentValue *= 10;
+	                        currentValue += ascii - 48;
+	                    }
+	                } else if (ascii === 44 || ascii === 46) { // a "," or "."
+	                    inValue = true;
+	                    decimalPosition++;
+	                } else {
+	                    if (inValue) {
+	                        // need to process the previous value
+	                        if (newLine) {
+	                            newLine = false; // we don't check the X value
+	                            // console.log("NEW LINE",isDifference, lastDifference);
+	                            // if new line and lastDifference, the first value is just a check !
+	                            // that we don't check ...
+	                            if (isLastDifference) skipFirstValue = true;
+	                        } else {
+	                            // need to deal with duplicate and differences
+	                            if (skipFirstValue) {
+	                                skipFirstValue = false;
+	                            } else {
+	                                if (isDifference) {
+	                                    if (currentValue === 0) lastDifference = 0;
+	                                    else lastDifference = isNegative ? -currentValue : currentValue;
+	                                    isLastDifference = true;
+	                                    isDifference = false;
+	                                }
+	                                var duplicate = isDuplicate ? currentValue - 1 : 1;
+	                                for (var j = 0; j < duplicate; j++) {
+	                                    if (isLastDifference) {
+	                                        currentY += lastDifference;
+	                                    } else {
+	                                        if (currentValue === 0) currentY = 0;
+	                                        else currentY = isNegative ? -currentValue : currentValue;
+	                                    }
+
+	                                    //  console.log("Separator",isNegative ?
+	                                    //          -currentValue : currentValue,
+	                                    //      "isDiff", isDifference, "isDup", isDuplicate,
+	                                    //      "lastDif", lastDifference, "dup:", duplicate, "y", currentY);
+
+	                                    // push is slightly slower ... (we loose 10%)
+	                                    currentData[currentPosition++] = currentX;
+	                                    currentData[currentPosition++] = currentY * yFactor;
+	                                    currentX += deltaX;
+	                                }
+	                            }
+	                        }
+	                        isNegative = false;
+	                        currentValue = 0;
+	                        decimalPosition = 0;
+	                        inValue = false;
+	                        isDuplicate = false;
+	                    }
+
+	                    // positive SQZ digits @ A B C D E F G H I (ascii 64-73)
+	                    if ((ascii < 74) && (ascii > 63)) {
+	                        inValue = true;
+	                        isLastDifference = false;
+	                        currentValue = ascii - 64;
+	                    } else
+	                    // negative SQZ digits a b c d e f g h i (ascii 97-105)
+	                    if ((ascii > 96) && (ascii < 106)) {
+	                        inValue = true;
+	                        isLastDifference = false;
+	                        currentValue = ascii - 96;
+	                        isNegative = true;
+	                    } else
+	                    // DUP digits S T U V W X Y Z s (ascii 83-90, 115)
+	                    if (ascii === 115) {
+	                        inValue = true;
+	                        isDuplicate = true;
+	                        currentValue = 9;
+	                    } else if ((ascii > 82) && (ascii < 91)) {
+	                        inValue = true;
+	                        isDuplicate = true;
+	                        currentValue = ascii - 82;
+	                    } else
+	                    // positive DIF digits % J K L M N O P Q R (ascii 37, 74-82)
+	                    if ((ascii > 73) && (ascii < 83)) {
+	                        inValue = true;
+	                        isDifference = true;
+	                        currentValue = ascii - 73;
+	                    } else
+	                    // negative DIF digits j k l m n o p q r (ascii 106-114)
+	                    if ((ascii > 105) && (ascii < 115)) {
+	                        inValue = true;
+	                        isDifference = true;
+	                        currentValue = ascii - 105;
+	                        isNegative = true;
+	                    } else
+	                    // $ sign, we need to check the next one
+	                    if (ascii === 36 && value.charCodeAt(i + 1) === 36) {
+	                        inValue = true;
+	                        inComment = true;
+	                    } else
+	                    // positive DIF digits % J K L M N O P Q R (ascii 37, 74-82)
+	                    if (ascii === 37) {
+	                        inValue = true;
+	                        isDifference = true;
+	                        currentValue = 0;
+	                        isNegative = false;
+	                    } else if (ascii === 45) { // a "-"
+	                        // check if after there is a number, decimal or comma
+	                        var ascii2 = value.charCodeAt(i + 1);
+	                        if ((ascii2 >= 48 && ascii2 <= 57) || ascii2 === 44 || ascii2 === 46) {
+	                            inValue = true;
+	                            isLastDifference = false;
+	                            isNegative = true;
+	                        }
+	                    } else if (ascii === 13 || ascii === 10) {
+	                        newLine = true;
+	                        inComment = false;
+	                    }
+	                    // and now analyse the details ... space or tabulation
+	                    // if "+" we just don't care
+	                }
 	            }
 	        }
 	    }
+
+	    function parsePeakTable(spectrum, value, result) {
+	        var removeCommentRegExp = /\$\$.*/;
+	        var peakTableSplitRegExp = /[,\t ]+/;
+
+	        spectrum.isPeaktable = true;
+	        var i, ii, j, jj, values;
+	        var currentData = [];
+	        spectrum.data = [currentData];
+
+	        // counts for around 20% of the time
+	        var lines = value.split(/,? *,?[;\r\n]+ */);
+
+	        var k = 0;
+	        for (i = 1, ii = lines.length; i < ii; i++) {
+	            values = lines[i].trim().replace(removeCommentRegExp, '').split(peakTableSplitRegExp);
+	            if (values.length % 2 === 0) {
+	                for (j = 0, jj = values.length; j < jj; j = j + 2) {
+	                    // takes around 40% of the time to add and parse the 2 values nearly exclusively because of parseFloat
+	                    currentData[k++] = (parseFloat(values[j]) * spectrum.xFactor);
+	                    currentData[k++] = (parseFloat(values[j + 1]) * spectrum.yFactor);
+	                }
+	            } else {
+	                result.logs.push('Format error: ' + values);
+	            }
+	        }
+	    }
+
 
 	    return convert;
 
@@ -1351,20 +1453,25 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return new Promise(function (resolve) {
 	        var stamp = Date.now() + '' + Math.random();
 	        stamps[stamp] = resolve;
-	        worker.postMessage({stamp: stamp, input: input, options: options});
+	        worker.postMessage(JSON.stringify({
+	            stamp: stamp,
+	            input: input,
+	            options: options
+	        }));
 	    });
 	}
 
 	function createWorker() {
 	    var workerURL = URL.createObjectURL(new Blob([
-	        'var getConverter =' + getConverter.toString() + ';var convert = getConverter(); onmessage = function (event) { postMessage({stamp: event.data.stamp, output: convert(event.data.input, event.data.options)}); };'
+	        'var getConverter =' + getConverter.toString() + ';var convert = getConverter(); onmessage = function (event) { var data = JSON.parse(event.data); postMessage(JSON.stringify({stamp: data.stamp, output: convert(data.input, data.options)})); };'
 	    ], {type: 'application/javascript'}));
 	    worker = new Worker(workerURL);
 	    URL.revokeObjectURL(workerURL);
 	    worker.addEventListener('message', function (event) {
-	        var stamp = event.data.stamp;
+	        var data = JSON.parse(event.data);
+	        var stamp = data.stamp;
 	        if (stamps[stamp]) {
-	            stamps[stamp](event.data.output);
+	            stamps[stamp](data.output);
 	        }
 	    });
 	}
@@ -1376,6 +1483,156 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 2 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+
+	var xyDataSplitRegExp = /[,\t \+-]*(?=[^\d,\t \.])|[ \t]+(?=[\d+\.-])/;
+	var removeCommentRegExp = /\$\$.*/;
+	var DEBUG=false;
+
+	module.exports=function(spectrum, value, result) {
+	    // we check if deltaX is defined otherwise we calculate it
+	    if (!spectrum.deltaX) {
+	        spectrum.deltaX = (spectrum.lastX - spectrum.firstX) / (spectrum.nbPoints - 1);
+	    }
+
+	    spectrum.isXYdata=true;
+
+	    var currentData = [];
+	    var currentPosition=0;
+	    spectrum.data = [currentData];
+
+	    var currentX = spectrum.firstX;
+	    var currentY = spectrum.firstY;
+	    var lines = value.split(/[\r\n]+/);
+	    var lastDif, values, ascii, expectedY;
+	    values = [];
+	    for (var i = 1, ii = lines.length; i < ii; i++) {
+	        //var previousValues=JSON.parse(JSON.stringify(values));
+	        values = lines[i].trim().replace(removeCommentRegExp, '').split(xyDataSplitRegExp);
+	        if (values.length > 0) {
+	            if (DEBUG) {
+	                if (!spectrum.firstPoint) {
+	                    spectrum.firstPoint = +values[0];
+	                }
+	                var expectedCurrentX = (values[0] - spectrum.firstPoint) * spectrum.xFactor + spectrum.firstX;
+	                if ((lastDif || lastDif === 0)) {
+	                    expectedCurrentX += spectrum.deltaX;
+	                }
+	                result.logs.push('Checking X value: currentX: ' + currentX + ' - expectedCurrentX: ' + expectedCurrentX);
+	            }
+	            for (var j = 1, jj = values.length; j < jj; j++) {
+	                if (j === 1 && (lastDif || lastDif === 0)) {
+	                    lastDif = null; // at the beginning of each line there should be the full value X / Y so the diff is always undefined
+	                    // we could check if we have the expected Y value
+	                    ascii = values[j].charCodeAt(0);
+
+	                    if (false) { // this code is just to check the jcamp DIFDUP and the next line repeat of Y value
+	                        // + - . 0 1 2 3 4 5 6 7 8 9
+	                        if ((ascii === 43) || (ascii === 45) || (ascii === 46) || ((ascii > 47) && (ascii < 58))) {
+	                            expectedY = +values[j];
+	                        } else
+	                        // positive SQZ digits @ A B C D E F G H I (ascii 64-73)
+	                        if ((ascii > 63) && (ascii < 74)) {
+	                            expectedY = +(String.fromCharCode(ascii - 16) + values[j].substring(1));
+	                        } else
+	                        // negative SQZ digits a b c d e f g h i (ascii 97-105)
+	                        if ((ascii > 96) && (ascii < 106)) {
+	                            expectedY = -(String.fromCharCode(ascii - 48) + values[j].substring(1));
+	                        }
+	                        if (expectedY !== currentY) {
+	                            result.logs.push('Y value check error: Found: ' + expectedY + ' - Current: ' + currentY);
+	                            result.logs.push('Previous values: ' + previousValues.length);
+	                            result.logs.push(previousValues);
+	                        }
+	                    }
+	                } else {
+	                    if (values[j].length > 0) {
+	                        ascii = values[j].charCodeAt(0);
+	                        // + - . 0 1 2 3 4 5 6 7 8 9
+	                        if ((ascii === 43) || (ascii === 45) || (ascii === 46) || ((ascii > 47) && (ascii < 58))) {
+	                            lastDif = null;
+	                            currentY = +values[j];
+	                            // currentData.push(currentX, currentY * spectrum.yFactor);
+	                            currentData[currentPosition++]=currentX;
+	                            currentData[currentPosition++]=currentY * spectrum.yFactor;
+	                            currentX += spectrum.deltaX;
+	                        } else
+	                        // positive SQZ digits @ A B C D E F G H I (ascii 64-73)
+	                        if ((ascii > 63) && (ascii < 74)) {
+	                            lastDif = null;
+	                            currentY = +(String.fromCharCode(ascii - 16) + values[j].substring(1));
+	                            // currentData.push(currentX, currentY * spectrum.yFactor);
+	                            currentData[currentPosition++] = currentX;
+	                            currentData[currentPosition++] = currentY * spectrum.yFactor;
+	                            currentX += spectrum.deltaX;
+	                        } else
+	                        // negative SQZ digits a b c d e f g h i (ascii 97-105)
+	                        if ((ascii > 96) && (ascii < 106)) {
+	                            lastDif = null;
+	                            // we can multiply the string by 1 because if may not contain decimal (is this correct ????)
+	                            currentY = -(String.fromCharCode(ascii - 48) + values[j].substring(1))*1;
+	                            //currentData.push(currentX, currentY * spectrum.yFactor);
+	                            currentData[currentPosition++]=currentX;
+	                            currentData[currentPosition++]=currentY * spectrum.yFactor;
+	                            currentX += spectrum.deltaX;
+	                        } else
+
+
+
+	                        // DUP digits S T U V W X Y Z s (ascii 83-90, 115)
+	                        if (((ascii > 82) && (ascii < 91)) || (ascii === 115)) {
+	                            var dup = (String.fromCharCode(ascii - 34) + values[j].substring(1)) - 1;
+	                            if (ascii === 115) {
+	                                dup = ('9' + values[j].substring(1)) - 1;
+	                            }
+	                            for (var l = 0; l < dup; l++) {
+	                                if (lastDif) {
+	                                    currentY = currentY + lastDif;
+	                                }
+	                                // currentData.push(currentX, currentY * spectrum.yFactor);
+	                                currentData[currentPosition++]=currentX;
+	                                currentData[currentPosition++]=currentY * spectrum.yFactor;
+	                                currentX += spectrum.deltaX;
+	                            }
+	                        } else
+	                        // positive DIF digits % J K L M N O P Q R (ascii 37, 74-82)
+	                        if (ascii === 37) {
+	                            lastDif = +('0' + values[j].substring(1));
+	                            currentY += lastDif;
+	                            // currentData.push(currentX, currentY * spectrum.yFactor);
+	                            currentData[currentPosition++]=currentX;
+	                            currentData[currentPosition++]=currentY * spectrum.yFactor;
+	                            currentX += spectrum.deltaX;
+	                        } else if ((ascii > 73) && (ascii < 83)) {
+	                            lastDif = (String.fromCharCode(ascii - 25) + values[j].substring(1))*1;
+	                            currentY += lastDif;
+	                            // currentData.push(currentX, currentY * spectrum.yFactor);
+	                            currentData[currentPosition++]=currentX;
+	                            currentData[currentPosition++]=currentY * spectrum.yFactor;
+	                            currentX += spectrum.deltaX;
+	                        } else
+	                        // negative DIF digits j k l m n o p q r (ascii 106-114)
+	                        if ((ascii > 105) && (ascii < 115)) {
+	                            lastDif = -(String.fromCharCode(ascii - 57) + values[j].substring(1))*1;
+	                            currentY += lastDif;
+	                            // currentData.push(currentX, currentY * spectrum.yFactor);
+	                            currentData[currentPosition++]=currentX;
+	                            currentData[currentPosition++]=currentY * spectrum.yFactor;
+	                            currentX += spectrum.deltaX;
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	    }
+	}
+
+
+/***/ },
+/* 3 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -1621,12 +1878,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 3 */
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var base64 = __webpack_require__(4);
+	var base64 = __webpack_require__(5);
 
 	/**
 	Usage:
@@ -1674,16 +1931,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return newObj;
 	    };
 	}
-	JSZip.prototype = __webpack_require__(5);
-	JSZip.prototype.load = __webpack_require__(38);
-	JSZip.support = __webpack_require__(6);
-	JSZip.defaults = __webpack_require__(33);
+	JSZip.prototype = __webpack_require__(6);
+	JSZip.prototype.load = __webpack_require__(39);
+	JSZip.support = __webpack_require__(7);
+	JSZip.defaults = __webpack_require__(34);
 
 	/**
 	 * @deprecated
 	 * This namespace will be removed in a future version without replacement.
 	 */
-	JSZip.utils = __webpack_require__(46);
+	JSZip.utils = __webpack_require__(47);
 
 	JSZip.base64 = {
 	    /**
@@ -1701,12 +1958,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return base64.decode(input);
 	    }
 	};
-	JSZip.compressions = __webpack_require__(12);
+	JSZip.compressions = __webpack_require__(13);
 	module.exports = JSZip;
 
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -1782,22 +2039,22 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var support = __webpack_require__(6);
-	var utils = __webpack_require__(11);
-	var crc32 = __webpack_require__(31);
-	var signature = __webpack_require__(32);
-	var defaults = __webpack_require__(33);
-	var base64 = __webpack_require__(4);
-	var compressions = __webpack_require__(12);
-	var CompressedObject = __webpack_require__(34);
-	var nodeBuffer = __webpack_require__(30);
-	var utf8 = __webpack_require__(35);
-	var StringWriter = __webpack_require__(36);
-	var Uint8ArrayWriter = __webpack_require__(37);
+	var support = __webpack_require__(7);
+	var utils = __webpack_require__(12);
+	var crc32 = __webpack_require__(32);
+	var signature = __webpack_require__(33);
+	var defaults = __webpack_require__(34);
+	var base64 = __webpack_require__(5);
+	var compressions = __webpack_require__(13);
+	var CompressedObject = __webpack_require__(35);
+	var nodeBuffer = __webpack_require__(31);
+	var utf8 = __webpack_require__(36);
+	var StringWriter = __webpack_require__(37);
+	var Uint8ArrayWriter = __webpack_require__(38);
 
 	/**
 	 * Returns the raw data of a ZipObject, decompress the content if necessary.
@@ -2658,7 +2915,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
@@ -2696,10 +2953,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	}
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8).Buffer))
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer, global) {/*!
@@ -2712,9 +2969,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	'use strict'
 
-	var base64 = __webpack_require__(8)
-	var ieee754 = __webpack_require__(9)
-	var isArray = __webpack_require__(10)
+	var base64 = __webpack_require__(9)
+	var ieee754 = __webpack_require__(10)
+	var isArray = __webpack_require__(11)
 
 	exports.Buffer = Buffer
 	exports.SlowBuffer = SlowBuffer
@@ -4251,10 +4508,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return i
 	}
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7).Buffer, (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8).Buffer, (function() { return this; }())))
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -4384,7 +4641,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	exports.read = function (buffer, offset, isLE, mLen, nBytes) {
@@ -4474,7 +4731,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports) {
 
 	var toString = {}.toString;
@@ -4485,13 +4742,13 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var support = __webpack_require__(6);
-	var compressions = __webpack_require__(12);
-	var nodeBuffer = __webpack_require__(30);
+	var support = __webpack_require__(7);
+	var compressions = __webpack_require__(13);
+	var nodeBuffer = __webpack_require__(31);
 	/**
 	 * Convert a string to a "binary string" : a string containing only char codes between 0 and 255.
 	 * @param {string} str the string to transform.
@@ -4835,7 +5092,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -4850,17 +5107,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	    compressInputType: null,
 	    uncompressInputType: null
 	};
-	exports.DEFLATE = __webpack_require__(13);
+	exports.DEFLATE = __webpack_require__(14);
 
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	var USE_TYPEDARRAY = (typeof Uint8Array !== 'undefined') && (typeof Uint16Array !== 'undefined') && (typeof Uint32Array !== 'undefined');
 
-	var pako = __webpack_require__(14);
+	var pako = __webpack_require__(15);
 	exports.uncompressInputType = USE_TYPEDARRAY ? "uint8array" : "array";
 	exports.compressInputType = USE_TYPEDARRAY ? "uint8array" : "array";
 
@@ -4876,17 +5133,17 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Top level file is just a mixin of submodules & constants
 	'use strict';
 
-	var assign    = __webpack_require__(15).assign;
+	var assign    = __webpack_require__(16).assign;
 
-	var deflate   = __webpack_require__(16);
-	var inflate   = __webpack_require__(24);
-	var constants = __webpack_require__(28);
+	var deflate   = __webpack_require__(17);
+	var inflate   = __webpack_require__(25);
+	var constants = __webpack_require__(29);
 
 	var pako = {};
 
@@ -4896,7 +5153,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -5004,17 +5261,17 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 
-	var zlib_deflate = __webpack_require__(17);
-	var utils        = __webpack_require__(15);
-	var strings      = __webpack_require__(22);
-	var msg          = __webpack_require__(21);
-	var ZStream      = __webpack_require__(23);
+	var zlib_deflate = __webpack_require__(18);
+	var utils        = __webpack_require__(16);
+	var strings      = __webpack_require__(23);
+	var msg          = __webpack_require__(22);
+	var ZStream      = __webpack_require__(24);
 
 	var toString = Object.prototype.toString;
 
@@ -5410,16 +5667,16 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var utils   = __webpack_require__(15);
-	var trees   = __webpack_require__(18);
-	var adler32 = __webpack_require__(19);
-	var crc32   = __webpack_require__(20);
-	var msg     = __webpack_require__(21);
+	var utils   = __webpack_require__(16);
+	var trees   = __webpack_require__(19);
+	var adler32 = __webpack_require__(20);
+	var crc32   = __webpack_require__(21);
+	var msg     = __webpack_require__(22);
 
 	/* Public constants ==========================================================*/
 	/* ===========================================================================*/
@@ -7264,13 +7521,13 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 
-	var utils = __webpack_require__(15);
+	var utils = __webpack_require__(16);
 
 	/* Public constants ==========================================================*/
 	/* ===========================================================================*/
@@ -8472,7 +8729,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -8510,7 +8767,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -8557,7 +8814,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -8576,14 +8833,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// String encode/decode helpers
 	'use strict';
 
 
-	var utils = __webpack_require__(15);
+	var utils = __webpack_require__(16);
 
 
 	// Quick check if we can use fast array to bin string conversion
@@ -8767,7 +9024,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -8802,19 +9059,19 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 
-	var zlib_inflate = __webpack_require__(25);
-	var utils        = __webpack_require__(15);
-	var strings      = __webpack_require__(22);
-	var c            = __webpack_require__(28);
-	var msg          = __webpack_require__(21);
-	var ZStream      = __webpack_require__(23);
-	var GZheader     = __webpack_require__(29);
+	var zlib_inflate = __webpack_require__(26);
+	var utils        = __webpack_require__(16);
+	var strings      = __webpack_require__(23);
+	var c            = __webpack_require__(29);
+	var msg          = __webpack_require__(22);
+	var ZStream      = __webpack_require__(24);
+	var GZheader     = __webpack_require__(30);
 
 	var toString = Object.prototype.toString;
 
@@ -9226,17 +9483,17 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 
-	var utils         = __webpack_require__(15);
-	var adler32       = __webpack_require__(19);
-	var crc32         = __webpack_require__(20);
-	var inflate_fast  = __webpack_require__(26);
-	var inflate_table = __webpack_require__(27);
+	var utils         = __webpack_require__(16);
+	var adler32       = __webpack_require__(20);
+	var crc32         = __webpack_require__(21);
+	var inflate_fast  = __webpack_require__(27);
+	var inflate_table = __webpack_require__(28);
 
 	var CODES = 0;
 	var LENS = 1;
@@ -10770,7 +11027,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -11102,13 +11359,13 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 
-	var utils = __webpack_require__(15);
+	var utils = __webpack_require__(16);
 
 	var MAXBITS = 15;
 	var ENOUGH_LENS = 852;
@@ -11435,7 +11692,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 28 */
+/* 29 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -11491,7 +11748,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 29 */
+/* 30 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -11537,7 +11794,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 30 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
@@ -11548,15 +11805,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return Buffer.isBuffer(b);
 	};
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8).Buffer))
 
 /***/ },
-/* 31 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var utils = __webpack_require__(11);
+	var utils = __webpack_require__(12);
 
 	var table = [
 	    0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
@@ -11659,7 +11916,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 32 */
+/* 33 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -11672,7 +11929,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 33 */
+/* 34 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -11689,7 +11946,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 34 */
+/* 35 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -11723,14 +11980,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 35 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var utils = __webpack_require__(11);
-	var support = __webpack_require__(6);
-	var nodeBuffer = __webpack_require__(30);
+	var utils = __webpack_require__(12);
+	var support = __webpack_require__(7);
+	var nodeBuffer = __webpack_require__(31);
 
 	/**
 	 * The following functions come from pako, from pako/lib/utils/strings
@@ -11936,12 +12193,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 36 */
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var utils = __webpack_require__(11);
+	var utils = __webpack_require__(12);
 
 	/**
 	 * An object to write any content to a string.
@@ -11972,12 +12229,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 37 */
+/* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var utils = __webpack_require__(11);
+	var utils = __webpack_require__(12);
 
 	/**
 	 * An object to write any content to an Uint8Array.
@@ -12014,14 +12271,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 38 */
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var base64 = __webpack_require__(4);
-	var utf8 = __webpack_require__(35);
-	var utils = __webpack_require__(11);
-	var ZipEntries = __webpack_require__(39);
+	var base64 = __webpack_require__(5);
+	var utf8 = __webpack_require__(36);
+	var utils = __webpack_require__(12);
+	var ZipEntries = __webpack_require__(40);
 	module.exports = function(data, options) {
 	    var files, zipEntries, i, input;
 	    options = utils.extend(options || {}, {
@@ -12059,19 +12316,19 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 39 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var StringReader = __webpack_require__(40);
-	var NodeBufferReader = __webpack_require__(42);
-	var Uint8ArrayReader = __webpack_require__(43);
-	var ArrayReader = __webpack_require__(44);
-	var utils = __webpack_require__(11);
-	var sig = __webpack_require__(32);
-	var ZipEntry = __webpack_require__(45);
-	var support = __webpack_require__(6);
-	var jszipProto = __webpack_require__(5);
+	var StringReader = __webpack_require__(41);
+	var NodeBufferReader = __webpack_require__(43);
+	var Uint8ArrayReader = __webpack_require__(44);
+	var ArrayReader = __webpack_require__(45);
+	var utils = __webpack_require__(12);
+	var sig = __webpack_require__(33);
+	var ZipEntry = __webpack_require__(46);
+	var support = __webpack_require__(7);
+	var jszipProto = __webpack_require__(6);
 	//  class ZipEntries {{{
 	/**
 	 * All the entries in the zip file.
@@ -12345,12 +12602,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 40 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var DataReader = __webpack_require__(41);
-	var utils = __webpack_require__(11);
+	var DataReader = __webpack_require__(42);
+	var utils = __webpack_require__(12);
 
 	function StringReader(data, optimizedBinaryString) {
 	    this.data = data;
@@ -12388,11 +12645,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 41 */
+/* 42 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var utils = __webpack_require__(11);
+	var utils = __webpack_require__(12);
 
 	function DataReader(data) {
 	    this.data = null; // type : see implementation
@@ -12502,11 +12759,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 42 */
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var Uint8ArrayReader = __webpack_require__(43);
+	var Uint8ArrayReader = __webpack_require__(44);
 
 	function NodeBufferReader(data) {
 	    this.data = data;
@@ -12529,11 +12786,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 43 */
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var ArrayReader = __webpack_require__(44);
+	var ArrayReader = __webpack_require__(45);
 
 	function Uint8ArrayReader(data) {
 	    if (data) {
@@ -12561,11 +12818,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 44 */
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var DataReader = __webpack_require__(41);
+	var DataReader = __webpack_require__(42);
 
 	function ArrayReader(data) {
 	    if (data) {
@@ -12618,15 +12875,15 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 45 */
+/* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var StringReader = __webpack_require__(40);
-	var utils = __webpack_require__(11);
-	var CompressedObject = __webpack_require__(34);
-	var jszipProto = __webpack_require__(5);
-	var support = __webpack_require__(6);
+	var StringReader = __webpack_require__(41);
+	var utils = __webpack_require__(12);
+	var CompressedObject = __webpack_require__(35);
+	var jszipProto = __webpack_require__(6);
+	var support = __webpack_require__(7);
 
 	var MADE_BY_DOS = 0x00;
 	var MADE_BY_UNIX = 0x03;
@@ -12943,11 +13200,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 46 */
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var utils = __webpack_require__(11);
+	var utils = __webpack_require__(12);
 
 	/**
 	 * @deprecated

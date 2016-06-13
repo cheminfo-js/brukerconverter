@@ -1,6 +1,6 @@
 {
   "name": "brukerconverter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Parse and convert Bruker raw data",
   "main": "./src/brukerconverter.js",
   "directories": {
