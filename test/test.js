@@ -114,6 +114,9 @@ describe("Bruker converter test", function () {
             result[1].value.spectra[0].dataType.should.equal("NMR Spectrum");
             result[0].value.spectra.length.should.equal(2);
 
+            result[0].value.info["$SPOFFS"].length.should.greaterThan(10);
+            result[1].value.info["$SPOFFS"].length.should.greaterThan(10);
+
         });
     });
 
@@ -124,7 +127,7 @@ describe("Bruker converter test", function () {
             result.length.should.equal(2);
         });
 
-        it.only('First and lastX', function () {
+        it('First and lastX', function () {
             var result = convertZIP(zip, {xy: true, keepSpectra: true});
             result[0].value.spectra[0].dataType.should.equal("NMR FID");
             result[1].value.spectra[0].dataType.should.equal("NMR FID");

@@ -47,7 +47,9 @@ function readZIP(zipFile, options) {
             return files[relativePath] ? true : false;
         });
         var brukerFiles = {};
-
+        if(name.indexOf("pdata")>=0){
+            brukerFiles['acqus'] = zip.file(name.replace(/pdata\/[0-9]\//,"acqus")).asText();
+        }
         for(var j = 0; j < currFiles.length; ++j) {
             var idx = currFiles[j].name.lastIndexOf('/');
             var name = currFiles[j].name.substr(idx + 1);
@@ -113,9 +115,18 @@ function convert(brukerFiles, options) {
 }
 
 function convert1D(files, options) {
-    if(files['1r'] || files['1i']) {
-        var result = parseData(files["procs"], options);
+    var result = parseData(files["procs"], options);
+    var temp = parseData(files['acqus'], options);
 
+    var keys = Object.keys(temp.info);
+    for (var i = 0; i < keys.length; i++) {
+        var currKey = keys[i];
+        if(result.info[currKey] === undefined) {
+            result.info[currKey] = temp.info[currKey];
+        }
+    }
+
+    if(files['1r'] || files['1i']) {
         if(files['1r']) {
             setXYSpectrumData(files['1r'], result, '1r', true);
         }
@@ -123,7 +134,16 @@ function convert1D(files, options) {
             setXYSpectrumData(files['1i'], result, '1i', false);
         }
     } else if(files['fid']) {
-        result = parseData(files['procs'], options);
+        setFIDSpectrumData(files['fid'], result)
+    }
+    
+    return result;
+}
+
+function convert2D(files, options) {
+    var SF,SW_p,SW,offset;
+    if(files['2rr']) {
+        var result = parseData(files['procs'], options);
         var temp = parseData(files['acqus'], options);
 
         var keys = Object.keys(temp.info);
@@ -133,16 +153,8 @@ function convert1D(files, options) {
                 result.info[currKey] = temp.info[currKey];
             }
         }
-        setFIDSpectrumData(files['fid'], result)
-    }
-    return result;
-}
-
-function convert2D(files, options) {
-    var SF,SW_p,SW,offset;
-    if(files['2rr']) {
-        var result = parseData(files['procs'], options);
-        var temp = parseData(files['proc2s'], options);
+        
+        temp = parseData(files['proc2s'], options);
         result.info.nbSubSpectra = temp.info['$SI'] = parseInt(temp.info['$SI']);
         SF = temp.info['$SF'] = parseFloat(temp.info['$SF']);
         SW_p = temp.info['$SWP'] = parseFloat(temp.info['$SWP']);
