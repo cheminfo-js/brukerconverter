@@ -541,5 +541,5 @@ function generateContourLines(zData, options) {
 
 module.exports =  {
     convertZip: readZIP,
-    converFolder: convert
+    convertFolder: convert
 };
