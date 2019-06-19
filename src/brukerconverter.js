@@ -226,6 +226,7 @@ function convert2D(files, options) {
 }
 
 function setXYSpectrumData(file, spectra, store, real) {
+  file = ensureIOBuffer(file);
   var td = (spectra.info.$SI = parseInt(spectra.info.$SI));
 
   var swP = parseFloat(spectra.info.$SWP);
@@ -308,9 +309,9 @@ function parseData(file, options) {
 }
 
 function setFIDSpectrumData(file, spectra) {
+  file = ensureIOBuffer(file);
   var td = (spectra.info.$TD = parseInt(spectra.info.$TD));
 
-  var SW_h = (spectra.info.$SWH = parseFloat(spectra.info.$SWH));
   var SW = (spectra.info.$SW = parseFloat(spectra.info.$SW));
 
   var SF = (spectra.info.$SFO1 = parseFloat(spectra.info.$SFO1));
