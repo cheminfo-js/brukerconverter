@@ -1,18 +1,16 @@
-
 const Converter = require('jcampconverter');
 const IOBuffer = require('iobuffer');
 const JSZip = require('jszip');
 
-// constants
-var BINARY = 1;
-var TEXT = 2;
+const BINARY = 1;
+const TEXT = 2;
 
 function readZIP(zipFile, options) {
   options = options || {};
-  var jsZip = new JSZip();
+  const jsZip = new JSZip();
 
   return jsZip.loadAsync(zipFile, options).then((zip) => {
-    var files = {
+    let files = {
       ser: BINARY,
       fid: BINARY,
       acqus: TEXT,
@@ -23,35 +21,42 @@ function readZIP(zipFile, options) {
       '1i': BINARY,
       '2rr': BINARY
     };
-    var folders = zip.filter(function (relativePath, file) {
-      if (relativePath.indexOf('ser') >= 0 || relativePath.indexOf('fid') >= 0
-                || relativePath.indexOf('1r') >= 0 || relativePath.indexOf('2rr') >= 0) {
+    let folders = zip.filter(function (relativePath, file) {
+      if (
+        relativePath.endsWith('ser') ||
+        relativePath.endsWith('fid') ||
+        relativePath.endsWith('1r') ||
+        relativePath.endsWith('2rr')
+      ) {
         return true;
       }
       return false;
     });
     var spectra = new Array(folders.length);
 
-    for (var i = 0; i < folders.length; ++i) {
+    for (let i = 0; i < folders.length; ++i) {
       var promises = [];
-      var len = folders[i].name.length;
       var name = folders[i].name;
       name = name.substr(0, name.lastIndexOf('/') + 1);
       promises.push(name);
       var currFolder = zip.folder(name);
-      var currFiles = currFolder.filter(function (relativePath, file) {
+      var currFiles = currFolder.filter(function (relativePath) {
         return files[relativePath] ? true : false;
       });
       if (name.indexOf('pdata') >= 0) {
         promises.push('acqus');
-        promises.push(zip.file(name.replace(/pdata\/[0-9]+\//, 'acqus')).async('string'));
+        promises.push(
+          zip.file(name.replace(/pdata\/[0-9]+\//, 'acqus')).async('string')
+        );
       }
       for (var j = 0; j < currFiles.length; ++j) {
         var idx = currFiles[j].name.lastIndexOf('/');
         var name = currFiles[j].name.substr(idx + 1);
         promises.push(name);
         if (files[name] === BINARY) {
-          let promise = currFiles[j].async('arraybuffer').then((arrayBuffer) => new IOBuffer(arrayBuffer));
+          let promise = currFiles[j]
+            .async('arraybuffer')
+            .then((arrayBuffer) => new IOBuffer(arrayBuffer));
           promises.push(promise);
         } else {
           promises.push(currFiles[j].async('string'));
@@ -96,14 +101,18 @@ function convert(brukerFiles, options) {
   }
 
   var spectra = result.spectra;
-  if (options.xy) { // the spectraData should not be a oneD array but an object with x and y
+  if (options.xy) {
+    // the spectraData should not be a oneD array but an object with x and y
     if (spectra.length > 0) {
       for (var i = 0; i < spectra.length; i++) {
         var spectrum = spectra[i];
         if (spectrum.data.length > 0) {
           for (var j = 0; j < spectrum.data.length; j++) {
             var data = spectrum.data[j];
-            var newData = { x: new Array(data.length / 2), y: new Array(data.length / 2) };
+            var newData = {
+              x: new Array(data.length / 2),
+              y: new Array(data.length / 2)
+            };
             for (var k = 0; k < data.length; k = k + 2) {
               newData.x[k / 2] = data[k];
               newData.y[k / 2] = data[k + 1];
@@ -145,7 +154,7 @@ function convert1D(files, options) {
 }
 
 function convert2D(files, options) {
-  var SF, SW_p, SW, offset;
+  var sf, swP, offset;
   if (files['2rr']) {
     var result = parseData(files.procs, options);
     var temp = parseData(files.acqus, options);
@@ -160,8 +169,8 @@ function convert2D(files, options) {
 
     temp = parseData(files.proc2s, options);
     result.info.nbSubSpectra = temp.info.$SI = parseInt(temp.info.$SI);
-    SF = temp.info.$SF = parseFloat(temp.info.$SF);
-    SW_p = temp.info.$SWP = parseFloat(temp.info.$SWP);
+    sf = temp.info.$SF = parseFloat(temp.info.$SF);
+    swP = temp.info.$SWP = parseFloat(temp.info.$SWP);
     offset = temp.info.$OFFSET = parseFloat(temp.info.$OFFSET);
   } else if (files.ser) {
     result = parseData(files.acqus, options);
@@ -170,22 +179,22 @@ function convert2D(files, options) {
     result.info.$SI = parseInt(result.info.$TD);
     // SW_p = temp.info['$SWH'] = parseFloat(temp.info['$SWH']);
 
-    SW_p = temp.info.$SW;
+    swP = temp.info.$SW;
 
     result.info.$SWP = result.info.$SWH;
     result.info.$SF = parseFloat(temp.info.$SFO1);
     result.info.$OFFSET = 0;
-    SF = temp.info.$SFO1 = parseFloat(temp.info.$SFO1);
-    SF = 1;
+    sf = temp.info.$SFO1 = parseFloat(temp.info.$SFO1);
+    sf = 1;
     offset = 0;
     result.info.$AXNUC = result.info.$NUC1;
     temp.info.$AXNUC = temp.info.$NUC1;
   }
 
   result.info.firstY = offset;
-  result.info.lastY = offset - SW_p / SF;
-  result.info.$BF2 = SF;
-  result.info.$SFO1 = SF;
+  result.info.lastY = offset - swP / sf;
+  result.info.$BF2 = sf;
+  result.info.$SFO1 = sf;
 
   var nbSubSpectra = result.info.nbSubSpectra;
   var pageValue = result.info.firstY;
@@ -202,11 +211,11 @@ function convert2D(files, options) {
     result.spectra[i].pageValue = pageValue;
   }
 
-  var dataType = files.ser ? 'TYPE_2DNMR_FID' : 'TYPE_2DNMR_SPECTRUM';
+  // var dataType = files.ser ? 'TYPE_2DNMR_FID' : 'TYPE_2DNMR_SPECTRUM';
 
   result.info['2D_Y_NUCLEUS'] = temp.info.$AXNUC;
   result.info['2D_X_NUCLEUS'] = result.info.$AXNUC;
-  result.info['2D_Y_FRECUENCY'] = SF;
+  result.info['2D_Y_FRECUENCY'] = sf;
   result.info['2D_Y_OFFSET'] = offset;
   result.info['2D_X_FRECUENCY'] = result.info.$SF;
   result.info['2D_X_OFFSET'] = result.info.$OFFSET;
@@ -217,18 +226,18 @@ function convert2D(files, options) {
 }
 
 function setXYSpectrumData(file, spectra, store, real) {
-  var td = spectra.info.$SI = parseInt(spectra.info.$SI);
+  var td = (spectra.info.$SI = parseInt(spectra.info.$SI));
 
-  var SW_p = parseFloat(spectra.info.$SWP);
-  var SF = parseFloat(spectra.info.$SF);
-  var BF = SF;
+  var swP = parseFloat(spectra.info.$SWP);
+  var sf = parseFloat(spectra.info.$SF);
+  var bf = sf;
   // var BF = parseFloat(spectra.info["$BF1"]);
-  var offset = spectra.shiftOffsetVal;// parseFloat(spectra.info["$OFFSET"]);
+  var offset = spectra.shiftOffsetVal; // parseFloat(spectra.info["$OFFSET"]);
 
-  spectra.info.observeFrequency = SF;
-  spectra.info.$BF1 = BF;
-  spectra.info.$SFO1 = SF;
-  spectra.info.brukerReference = BF;
+  spectra.info.observeFrequency = sf;
+  spectra.info.$BF1 = bf;
+  spectra.info.$SFO1 = sf;
+  spectra.info.brukerReference = bf;
 
   var endian = parseInt(spectra.info.$BYTORDP);
   endian = endian ? 0 : 1;
@@ -248,15 +257,14 @@ function setXYSpectrumData(file, spectra, store, real) {
       dataTable: '(X++(R..R))',
       nbPoints: td,
       firstX: offset,
-      lastX: offset - SW_p / SF,
+      lastX: offset - swP / sf,
       xUnit: 'PPM',
       yUnit: 'Arbitrary',
       data: [new Array(td * 2)], // [{x:new Array(td),y:new Array(td)}],
       isXYdata: true,
-      observeFrequency: SF,
+      observeFrequency: sf,
       title: spectra.info.TITLE,
-      deltaX: -(SW_p / SF) / (td - 1)
-
+      deltaX: -(swP / sf) / (td - 1)
     };
 
     var x = offset;
@@ -265,7 +273,10 @@ function setXYSpectrumData(file, spectra, store, real) {
       for (var k = 0; k < td; ++k) {
         toSave.data[0][2 * k] = x;
         toSave.data[0][2 * k + 1] = file.readInt32();
-        if (toSave.data[0][2 * k + 1] === null || isNaN(toSave.data[0][2 * k + 1])) {
+        if (
+          toSave.data[0][2 * k + 1] === null ||
+          isNaN(toSave.data[0][2 * k + 1])
+        ) {
           toSave.data[0][2 * k + 1] = 0;
         }
         x += deltaX;
@@ -274,7 +285,10 @@ function setXYSpectrumData(file, spectra, store, real) {
       for (k = td - 1; k >= 0; --k) {
         toSave.data[0][2 * k] = x;
         toSave.data[0][2 * k + 1] = file.readInt32();
-        if (toSave.data[0][2 * k + 1] === null || isNaN(toSave.data[0][2 * k + 1])) {
+        if (
+          toSave.data[0][2 * k + 1] === null ||
+          isNaN(toSave.data[0][2 * k + 1])
+        ) {
           toSave.data[0][2 * k + 1] = 0;
         }
         x += deltaX;
@@ -294,12 +308,12 @@ function parseData(file, options) {
 }
 
 function setFIDSpectrumData(file, spectra) {
-  var td = spectra.info.$TD = parseInt(spectra.info.$TD);
+  var td = (spectra.info.$TD = parseInt(spectra.info.$TD));
 
-  var SW_h = spectra.info.$SWH = parseFloat(spectra.info.$SWH);
-  var SW = spectra.info.$SW = parseFloat(spectra.info.$SW);
+  var SW_h = (spectra.info.$SWH = parseFloat(spectra.info.$SWH));
+  var SW = (spectra.info.$SW = parseFloat(spectra.info.$SW));
 
-  var SF = spectra.info.$SFO1 = parseFloat(spectra.info.$SFO1);
+  var SF = (spectra.info.$SFO1 = parseFloat(spectra.info.$SFO1));
   var BF = parseFloat(spectra.info.$BF1);
   spectra.info.$BF1 = BF;
 
@@ -401,7 +415,8 @@ function convertTo3DZ(spectra) {
       if (z[i][j] < minZ) minZ = spectra[i].data[0][j * 2 + 1];
       if (z[i][j] > maxZ) maxZ = spectra[i].data[0][j * 2 + 1];
       if (i !== 0 && j !== 0) {
-        noise += Math.abs(z[i][j] - z[i][j - 1]) + Math.abs(z[i][j] - z[i - 1][j]);
+        noise +=
+          Math.abs(z[i][j] - z[i][j - 1]) + Math.abs(z[i][j] - z[i - 1][j]);
       }
     }
   }
@@ -424,8 +439,7 @@ function add2D(result) {
   result.minMax = zData;
 }
 
-
-function generateContourLines(zData, options) {
+function generateContourLines(zData) {
   var noise = zData.noise;
   var z = zData.z;
   var contourLevels = [];
@@ -457,14 +471,17 @@ function generateContourLines(zData, options) {
   // ---------------------d------
 
   var lineZValue;
-  for (var level = 0; level < nbLevels * 2; level++) { // multiply by 2 for positif and negatif
+  for (var level = 0; level < nbLevels * 2; level++) {
+    // multiply by 2 for positif and negatif
     var contourLevel = {};
     contourLevels.push(contourLevel);
     var side = level % 2;
     if (side === 0) {
-      lineZValue = (maxZ - 5 * noise) * Math.exp(level / 2 - nbLevels) + 5 * noise;
+      lineZValue =
+        (maxZ - 5 * noise) * Math.exp(level / 2 - nbLevels) + 5 * noise;
     } else {
-      lineZValue = -(maxZ - 5 * noise) * Math.exp(level / 2 - nbLevels) - 5 * noise;
+      lineZValue =
+        -(maxZ - 5 * noise) * Math.exp(level / 2 - nbLevels) - 5 * noise;
     }
     var lines = [];
     contourLevel.zValue = lineZValue;
@@ -476,53 +493,108 @@ function generateContourLines(zData, options) {
       for (var povar = 0; povar < nbPovars - 1; povar++) {
         povarHeight[0] = z[iSubSpectra][povar];
         povarHeight[1] = z[iSubSpectra][povar + 1];
-        povarHeight[2] = z[(iSubSpectra + 1)][povar];
-        povarHeight[3] = z[(iSubSpectra + 1)][(povar + 1)];
+        povarHeight[2] = z[iSubSpectra + 1][povar];
+        povarHeight[3] = z[iSubSpectra + 1][povar + 1];
 
         for (var i = 0; i < 4; i++) {
-          isOver[i] = (povarHeight[i] > lineZValue);
+          isOver[i] = povarHeight[i] > lineZValue;
         }
 
         // Example povar0 is over the plane and povar1 and
         // povar2 are below, we find the varersections and add
         // the segment
         if (isOver[0] !== isOver[1] && isOver[0] !== isOver[2]) {
-          pAx = povar + (lineZValue - povarHeight[0]) / (povarHeight[1] - povarHeight[0]);
+          pAx =
+            povar +
+            (lineZValue - povarHeight[0]) / (povarHeight[1] - povarHeight[0]);
           pAy = iSubSpectra;
           pBx = povar;
-          pBy = iSubSpectra + (lineZValue - povarHeight[0]) / (povarHeight[2] - povarHeight[0]);
-          lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+          pBy =
+            iSubSpectra +
+            (lineZValue - povarHeight[0]) / (povarHeight[2] - povarHeight[0]);
+          lines.push(
+            pAx * dx + x0,
+            pAy * dy + y0,
+            pBx * dx + x0,
+            pBy * dy + y0
+          );
         }
         if (isOver[3] !== isOver[1] && isOver[3] !== isOver[2]) {
           pAx = povar + 1;
-          pAy = iSubSpectra + 1 - (lineZValue - povarHeight[3]) / (povarHeight[1] - povarHeight[3]);
-          pBx = povar + 1 - (lineZValue - povarHeight[3]) / (povarHeight[2] - povarHeight[3]);
+          pAy =
+            iSubSpectra +
+            1 -
+            (lineZValue - povarHeight[3]) / (povarHeight[1] - povarHeight[3]);
+          pBx =
+            povar +
+            1 -
+            (lineZValue - povarHeight[3]) / (povarHeight[2] - povarHeight[3]);
           pBy = iSubSpectra + 1;
-          lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+          lines.push(
+            pAx * dx + x0,
+            pAy * dy + y0,
+            pBx * dx + x0,
+            pBy * dy + y0
+          );
         }
         // test around the diagonal
         if (isOver[1] !== isOver[2]) {
-          pAx = povar + 1 - (lineZValue - povarHeight[1]) / (povarHeight[2] - povarHeight[1]);
-          pAy = iSubSpectra + (lineZValue - povarHeight[1]) / (povarHeight[2] - povarHeight[1]);
+          pAx =
+            povar +
+            1 -
+            (lineZValue - povarHeight[1]) / (povarHeight[2] - povarHeight[1]);
+          pAy =
+            iSubSpectra +
+            (lineZValue - povarHeight[1]) / (povarHeight[2] - povarHeight[1]);
           if (isOver[1] !== isOver[0]) {
-            pBx = povar + 1 - (lineZValue - povarHeight[1]) / (povarHeight[0] - povarHeight[1]);
+            pBx =
+              povar +
+              1 -
+              (lineZValue - povarHeight[1]) / (povarHeight[0] - povarHeight[1]);
             pBy = iSubSpectra;
-            lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+            lines.push(
+              pAx * dx + x0,
+              pAy * dy + y0,
+              pBx * dx + x0,
+              pBy * dy + y0
+            );
           }
           if (isOver[2] !== isOver[0]) {
             pBx = povar;
-            pBy = iSubSpectra + 1 - (lineZValue - povarHeight[2]) / (povarHeight[0] - povarHeight[2]);
-            lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+            pBy =
+              iSubSpectra +
+              1 -
+              (lineZValue - povarHeight[2]) / (povarHeight[0] - povarHeight[2]);
+            lines.push(
+              pAx * dx + x0,
+              pAy * dy + y0,
+              pBx * dx + x0,
+              pBy * dy + y0
+            );
           }
           if (isOver[1] !== isOver[3]) {
             pBx = povar + 1;
-            pBy = iSubSpectra + (lineZValue - povarHeight[1]) / (povarHeight[3] - povarHeight[1]);
-            lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+            pBy =
+              iSubSpectra +
+              (lineZValue - povarHeight[1]) / (povarHeight[3] - povarHeight[1]);
+            lines.push(
+              pAx * dx + x0,
+              pAy * dy + y0,
+              pBx * dx + x0,
+              pBy * dy + y0
+            );
           }
           if (isOver[2] !== isOver[3]) {
-            pBx = povar + (lineZValue - povarHeight[2]) / (povarHeight[3] - povarHeight[2]);
+            pBx =
+              povar +
+              (lineZValue - povarHeight[2]) / (povarHeight[3] - povarHeight[2]);
             pBy = iSubSpectra + 1;
-            lines.push(pAx * dx + x0, pAy * dy + y0, pBx * dx + x0, pBy * dy + y0);
+            lines.push(
+              pAx * dx + x0,
+              pAy * dy + y0,
+              pBx * dx + x0,
+              pBy * dy + y0
+            );
           }
         }
       }
@@ -536,6 +608,16 @@ function generateContourLines(zData, options) {
     maxY: zData.maxY,
     segments: contourLevels
   };
+}
+
+function ensureIOBuffer(data) {
+  if (data instanceof Array || data instanceof Uint8Array) {
+    data = new ArrayBuffer(data);
+  }
+  if (data instanceof ArrayBuffer) {
+    return new IOBuffer(data);
+  }
+  return data;
 }
 
 module.exports = {
