@@ -1,6 +1,6 @@
 {
   "name": "brukerconverter",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Parse and convert Bruker raw data",
   "main": "./src/brukerconverter.js",
   "directories": {
@@ -36,8 +36,8 @@
     "npm-run-all": "^4.0.1"
   },
   "dependencies": {
-    "iobuffer": "^2.0.0",
-    "jcampconverter": "^2.3.0",
+    "iobuffer": "^2.1.0",
+    "jcampconverter": "^2.11.0",
     "jszip": "^3.1.5"
   }
 }
