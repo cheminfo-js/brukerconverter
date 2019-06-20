@@ -27,7 +27,7 @@
   "homepage": "https://github.com/cheminfo-js/brukerconverter",
   "devDependencies": {
     "babel-preset-es2017": "6.24.1",
-    "cheminfo-tools": "1.3.4",
+    "cheminfo-tools": "1.23.3",
     "eslint": "^4.7.2",
     "eslint-config-cheminfo": "^1.8.0",
     "eslint-plugin-import": "^2.11.0",
@@ -36,8 +36,8 @@
     "npm-run-all": "^4.0.1"
   },
   "dependencies": {
-    "iobuffer": "^2.1.0",
-    "jcampconverter": "^2.11.0",
-    "jszip": "^3.1.5"
+    "iobuffer": "^4.0.1",
+    "jcampconverter": "^3.0.2",
+    "jszip": "^3.2.1"
   }
 }

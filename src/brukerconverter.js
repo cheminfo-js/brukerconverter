@@ -1,5 +1,5 @@
 const Converter = require('jcampconverter');
-const IOBuffer = require('iobuffer');
+const { IOBuffer } = require('iobuffer');
 const JSZip = require('jszip');
 
 const BINARY = 1;

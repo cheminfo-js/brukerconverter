@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const IOBuffer = require('iobuffer');
+const { IOBuffer } = require('iobuffer');
 
 const convert = require('../src/brukerconverter').convertFolder;
 const convertZIP = require('../src/brukerconverter').convertZip;
