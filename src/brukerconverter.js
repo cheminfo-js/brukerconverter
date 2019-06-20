@@ -54,10 +54,7 @@ function readZIP(zipFile, options) {
         var name = currFiles[j].name.substr(idx + 1);
         promises.push(name);
         if (files[name] === BINARY) {
-          let promise = currFiles[j]
-            .async('arraybuffer')
-            .then((arrayBuffer) => new IOBuffer(arrayBuffer));
-          promises.push(promise);
+          promises.push(currFiles[j].async('arraybuffer'));
         } else {
           promises.push(currFiles[j].async('string'));
         }
