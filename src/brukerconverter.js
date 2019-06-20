@@ -21,7 +21,7 @@ function readZIP(zipFile, options) {
       '1i': BINARY,
       '2rr': BINARY
     };
-    let folders = zip.filter(function (relativePath, file) {
+    let folders = zip.filter(function (relativePath) {
       if (
         relativePath.endsWith('ser') ||
         relativePath.endsWith('fid') ||
@@ -206,7 +206,7 @@ function convert2D(files, options) {
     setFIDSpectrumData(files.ser, result, 'ser', true);
   }
 
-  for (var i = 0; i < nbSubSpectra; i++) {
+  for (let i = 0; i < nbSubSpectra; i++) {
     pageValue += deltaY;
     result.spectra[i].pageValue = pageValue;
   }
@@ -232,8 +232,9 @@ function setXYSpectrumData(file, spectra, store, real) {
   var swP = parseFloat(spectra.info.$SWP);
   var sf = parseFloat(spectra.info.$SF);
   var bf = sf;
+
   // var BF = parseFloat(spectra.info["$BF1"]);
-  var offset = spectra.shiftOffsetVal; // parseFloat(spectra.info["$OFFSET"]);
+  var offset = spectra.shiftOffsetVal || parseFloat(spectra.info.$OFFSET);
 
   spectra.info.observeFrequency = sf;
   spectra.info.$BF1 = bf;
@@ -270,6 +271,7 @@ function setXYSpectrumData(file, spectra, store, real) {
 
     var x = offset;
     var deltaX = toSave.deltaX;
+
     if (real) {
       for (var k = 0; k < td; ++k) {
         toSave.data[0][2 * k] = x;
