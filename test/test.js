@@ -145,7 +145,7 @@ describe('Test with zip file', function () {
   });
 });
 
-describe('Test with pseudo SER file', async function () {
+describe('Test with pseudo SER file', function () {
   it('N spectra', async function () {
     var zip = fs.readFileSync('test/zip/21-BOMA-new.zip');
     var result = await convertZIP(zip, {
