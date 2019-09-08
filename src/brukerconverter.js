@@ -22,6 +22,7 @@ function readZIP(zipFile, options) {
       '2rr': BINARY
     };
     let folders = zip.filter(function (relativePath) {
+      if (relativePath.match('__MACOSX')) return false;
       if (
         relativePath.endsWith('ser') ||
         relativePath.endsWith('fid') ||
