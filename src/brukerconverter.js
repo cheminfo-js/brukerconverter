@@ -22,6 +22,7 @@ function readZIP(zipFile, options) {
       '2rr': BINARY
     };
     let folders = zip.filter(function (relativePath) {
+      if (relativePath.match('__MACOSX')) return false;
       if (
         relativePath.endsWith('ser') ||
         relativePath.endsWith('fid') ||
@@ -36,7 +37,7 @@ function readZIP(zipFile, options) {
 
     for (let i = 0; i < folders.length; ++i) {
       var promises = [];
-      var name = folders[i].name;
+      let name = folders[i].name;
       name = name.substr(0, name.lastIndexOf('/') + 1);
       promises.push(name);
       var currFolder = zip.folder(name);
@@ -51,7 +52,7 @@ function readZIP(zipFile, options) {
       }
       for (var j = 0; j < currFiles.length; ++j) {
         var idx = currFiles[j].name.lastIndexOf('/');
-        var name = currFiles[j].name.substr(idx + 1);
+        let name = currFiles[j].name.substr(idx + 1);
         promises.push(name);
         if (files[name] === BINARY) {
           promises.push(currFiles[j].async('arraybuffer'));
