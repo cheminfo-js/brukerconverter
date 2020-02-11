@@ -36,7 +36,7 @@ function readZIP(zipFile, options) {
 
     for (let i = 0; i < folders.length; ++i) {
       let promises = [];
-      var name = folders[i].name;
+      let name = folders[i].name;
       name = name.substr(0, name.lastIndexOf('/') + 1);
       promises.push(name);
       let currFolder = zip.folder(name);
@@ -51,7 +51,7 @@ function readZIP(zipFile, options) {
       }
       for (let j = 0; j < currFiles.length; ++j) {
         let idx = currFiles[j].name.lastIndexOf('/');
-        var name = currFiles[j].name.substr(idx + 1);
+        name = currFiles[j].name.substr(idx + 1);
         promises.push(name);
         if (files[name] === BINARY) {
           promises.push(currFiles[j].async('arraybuffer'));
@@ -61,9 +61,9 @@ function readZIP(zipFile, options) {
       }
       spectra[i] = Promise.all(promises).then((result) => {
         let brukerFiles = {};
-        for (let i = 1; i < result.length; i += 2) {
-          let name = result[i];
-          brukerFiles[name] = result[i + 1];
+        for (let k = 1; k < result.length; k += 2) {
+          name = result[k];
+          brukerFiles[name] = result[k + 1];
         }
         return { filename: result[0], value: convert(brukerFiles, options) };
       });
@@ -151,10 +151,10 @@ function convert1D(files, options) {
 }
 
 function convert2D(files, options) {
-  let sf, swP, offset;
+  let sf, swP, offset, result, temp;
   if (files['2rr']) {
-    var result = parseData(files.procs, options);
-    var temp = parseData(files.acqus, options);
+    result = parseData(files.procs, options);
+    temp = parseData(files.acqus, options);
 
     let keys = Object.keys(temp.info);
     for (let i = 0; i < keys.length; i++) {
@@ -165,15 +165,15 @@ function convert2D(files, options) {
     }
 
     temp = parseData(files.proc2s, options);
-    result.info.nbSubSpectra = temp.info.$SI = parseInt(temp.info.$SI);
+    result.info.nbSubSpectra = temp.info.$SI = parseInt(temp.info.$SI, 10);
     sf = temp.info.$SF = parseFloat(temp.info.$SF);
     swP = temp.info.$SWP = parseFloat(temp.info.$SWP);
     offset = temp.info.$OFFSET = parseFloat(temp.info.$OFFSET);
   } else if (files.ser) {
     result = parseData(files.acqus, options);
     temp = parseData(files.acqu2s, options);
-    result.info.nbSubSpectra = temp.info.$SI = parseInt(temp.info.$TD);
-    result.info.$SI = parseInt(result.info.$TD);
+    result.info.nbSubSpectra = temp.info.$SI = parseInt(temp.info.$TD, 10);
+    result.info.$SI = parseInt(result.info.$TD, 10);
     // SW_p = temp.info['$SWH'] = parseFloat(temp.info['$SWH']);
 
     swP = temp.info.$SW;
@@ -224,7 +224,7 @@ function convert2D(files, options) {
 
 function setXYSpectrumData(file, spectra, store, real) {
   file = ensureIOBuffer(file);
-  let td = (spectra.info.$SI = parseInt(spectra.info.$SI));
+  let td = (spectra.info.$SI = parseInt(spectra.info.$SI, 10));
 
   let swP = parseFloat(spectra.info.$SWP);
   let sf = parseFloat(spectra.info.$SF);
@@ -238,7 +238,7 @@ function setXYSpectrumData(file, spectra, store, real) {
   spectra.info.$SFO1 = sf;
   spectra.info.brukerReference = bf;
 
-  let endian = parseInt(spectra.info.$BYTORDP);
+  let endian = parseInt(spectra.info.$BYTORDP, 10);
   endian = endian ? 0 : 1;
 
   // number of spectras
@@ -270,7 +270,7 @@ function setXYSpectrumData(file, spectra, store, real) {
     let deltaX = toSave.deltaX;
 
     if (real) {
-      for (var k = 0; k < td; ++k) {
+      for (let k = 0; k < td; ++k) {
         toSave.data[0][2 * k] = x;
         toSave.data[0][2 * k + 1] = file.readInt32();
         if (
@@ -282,7 +282,7 @@ function setXYSpectrumData(file, spectra, store, real) {
         x += deltaX;
       }
     } else {
-      for (k = td - 1; k >= 0; --k) {
+      for (let k = td - 1; k >= 0; --k) {
         toSave.data[0][2 * k] = x;
         toSave.data[0][2 * k + 1] = file.readInt32();
         if (
@@ -309,7 +309,7 @@ function parseData(file, options) {
 
 function setFIDSpectrumData(file, spectra) {
   file = ensureIOBuffer(file);
-  let td = (spectra.info.$TD = parseInt(spectra.info.$TD));
+  let td = (spectra.info.$TD = parseInt(spectra.info.$TD, 10));
 
   let SW = (spectra.info.$SW = parseFloat(spectra.info.$SW));
 
@@ -322,7 +322,7 @@ function setFIDSpectrumData(file, spectra) {
   let AQ = SW;
   let DW = AQ / (td - 1);
 
-  let endian = parseInt(spectra.info.$BYTORDP);
+  let endian = parseInt(spectra.info.$BYTORDP, 10);
   endian = endian ? 0 : 1;
 
   if (endian) {
@@ -370,8 +370,8 @@ function setFIDSpectrumData(file, spectra) {
     spectra.spectra[j * 2 + 1] = toSave;
 
     let x = 0;
-    var y;
-    for (var i = 0; file.available(8) && i < td; i++, x = i * DW) {
+    let y, i;
+    for (i = 0; file.available(8) && i < td; i++, x = i * DW) {
       y = file.readInt32();
       if (y === null || isNaN(y)) {
         y = 0;
