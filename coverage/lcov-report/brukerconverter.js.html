@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.31% </span>
+                <span class="strong">96.3% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>313/325</span>
+                <span class='fraction'>312/324</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.68% </span>
+                <span class="strong">96.67% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>291/301</span>
+                <span class='fraction'>290/300</span>
             </div>
         
             
@@ -676,19 +676,13 @@
 <a name='L617'></a><a href='#L617'>617</a>
 <a name='L618'></a><a href='#L618'>618</a>
 <a name='L619'></a><a href='#L619'>619</a>
-<a name='L620'></a><a href='#L620'>620</a>
-<a name='L621'></a><a href='#L621'>621</a>
-<a name='L622'></a><a href='#L622'>622</a>
-<a name='L623'></a><a href='#L623'>623</a>
-<a name='L624'></a><a href='#L624'>624</a>
-<a name='L625'></a><a href='#L625'>625</a>
-<a name='L626'></a><a href='#L626'>626</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L620'></a><a href='#L620'>620</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
@@ -954,9 +948,6 @@
 <span class="cline-any cline-yes">6455296x</span>
 <span class="cline-any cline-yes">6455296x</span>
 <span class="cline-any cline-yes">6455296x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6455296x</span>
@@ -966,9 +957,6 @@
 <span class="cline-any cline-yes">163840x</span>
 <span class="cline-any cline-yes">163840x</span>
 <span class="cline-any cline-yes">163840x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">163840x</span>
@@ -1313,7 +1301,7 @@ const JSZip = require('jszip');
 &nbsp;
 const BINARY = 1;
 const TEXT = 2;
-var counter = 1;
+&nbsp;
 function readZIP(zipFile, options) {
   options = options || <span class="branch-1 cbranch-no" title="branch not covered" >{};</span>
   const jsZip = new JSZip();
@@ -1413,16 +1401,16 @@ function convert(brukerFiles, options) {
       for (let i = 0; i &lt; spectra.length; i++) {
         let spectrum = spectra[i];
         <span class="missing-if-branch" title="else path not taken" >E</span>if (spectrum.data.length) {
-            let data = spectrum.data;
-            let newData = {
-              x: new Array(data.length / 2),
-              y: new Array(data.length / 2),
-            };
-            for (let k = 0; k &lt; data.length; k = k + 2) {
-              newData.x[k / 2] = data[k];
-              newData.y[k / 2] = data[k + 1];
-            }
-            spectrum.data = newData;
+          let data = spectrum.data;
+          let newData = {
+            x: new Array(data.length / 2),
+            y: new Array(data.length / 2),
+          };
+          for (let k = 0; k &lt; data.length; k = k + 2) {
+            newData.x[k / 2] = data[k];
+            newData.y[k / 2] = data[k + 1];
+          }
+          spectrum.data = newData;
         }
       }
     }
@@ -1578,10 +1566,7 @@ function setXYSpectrumData(file, spectra, store, real) {
       for (let k = 0; k &lt; td; ++k) {
         toSave.data[2 * k] = x;
         toSave.data[2 * k + 1] = file.readInt32();
-        <span class="missing-if-branch" title="if path not taken" >I</span>if (
-          toSave.data[2 * k + 1] === null ||
-          isNaN(toSave.data[2 * k + 1])
-        ) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (toSave.data[2 * k + 1] === null || isNaN(toSave.data[2 * k + 1])) {
 <span class="cstat-no" title="statement not covered" >          toSave.data[2 * k + 1] = 0;</span>
         }
         x += deltaX;
@@ -1590,10 +1575,7 @@ function setXYSpectrumData(file, spectra, store, real) {
       for (let k = td - 1; k &gt;= 0; --k) {
         toSave.data[2 * k] = x;
         toSave.data[2 * k + 1] = file.readInt32();
-        <span class="missing-if-branch" title="if path not taken" >I</span>if (
-          toSave.data[2 * k + 1] === null ||
-          isNaN(toSave.data[2 * k + 1])
-        ) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (toSave.data[2 * k + 1] === null || isNaN(toSave.data[2 * k + 1])) {
 <span class="cstat-no" title="statement not covered" >          toSave.data[2 * k + 1] = 0;</span>
         }
         x += deltaX;
@@ -1610,7 +1592,7 @@ function parseData(file, options) {
   let result = Converter.convert(file, {
     keepRecordsRegExp: keepRecordsRegExp,
   });
-  
+&nbsp;
   return result.flatten.length === 0 ? {} : result.flatten[0];
 }
 &nbsp;
@@ -1939,7 +1921,7 @@ module.exports = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank">istanbul</a>
-                at Wed Apr 22 2020 12:32:55 GMT-0500 (Colombia Standard Time)
+                at Wed Apr 22 2020 12:38:52 GMT-0500 (Colombia Standard Time)
             </div>
         </div>
         <script src="prettify.js"></script>

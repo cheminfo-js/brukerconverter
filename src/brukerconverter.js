@@ -4,7 +4,7 @@ const JSZip = require('jszip');
 
 const BINARY = 1;
 const TEXT = 2;
-var counter = 1;
+
 function readZIP(zipFile, options) {
   options = options || {};
   const jsZip = new JSZip();
@@ -104,16 +104,16 @@ function convert(brukerFiles, options) {
       for (let i = 0; i < spectra.length; i++) {
         let spectrum = spectra[i];
         if (spectrum.data.length) {
-            let data = spectrum.data;
-            let newData = {
-              x: new Array(data.length / 2),
-              y: new Array(data.length / 2),
-            };
-            for (let k = 0; k < data.length; k = k + 2) {
-              newData.x[k / 2] = data[k];
-              newData.y[k / 2] = data[k + 1];
-            }
-            spectrum.data = newData;
+          let data = spectrum.data;
+          let newData = {
+            x: new Array(data.length / 2),
+            y: new Array(data.length / 2),
+          };
+          for (let k = 0; k < data.length; k = k + 2) {
+            newData.x[k / 2] = data[k];
+            newData.y[k / 2] = data[k + 1];
+          }
+          spectrum.data = newData;
         }
       }
     }
@@ -269,10 +269,7 @@ function setXYSpectrumData(file, spectra, store, real) {
       for (let k = 0; k < td; ++k) {
         toSave.data[2 * k] = x;
         toSave.data[2 * k + 1] = file.readInt32();
-        if (
-          toSave.data[2 * k + 1] === null ||
-          isNaN(toSave.data[2 * k + 1])
-        ) {
+        if (toSave.data[2 * k + 1] === null || isNaN(toSave.data[2 * k + 1])) {
           toSave.data[2 * k + 1] = 0;
         }
         x += deltaX;
@@ -281,10 +278,7 @@ function setXYSpectrumData(file, spectra, store, real) {
       for (let k = td - 1; k >= 0; --k) {
         toSave.data[2 * k] = x;
         toSave.data[2 * k + 1] = file.readInt32();
-        if (
-          toSave.data[2 * k + 1] === null ||
-          isNaN(toSave.data[2 * k + 1])
-        ) {
+        if (toSave.data[2 * k + 1] === null || isNaN(toSave.data[2 * k + 1])) {
           toSave.data[2 * k + 1] = 0;
         }
         x += deltaX;
@@ -301,7 +295,7 @@ function parseData(file, options) {
   let result = Converter.convert(file, {
     keepRecordsRegExp: keepRecordsRegExp,
   });
-  
+
   return result.flatten.length === 0 ? {} : result.flatten[0];
 }
 
