@@ -13,22 +13,22 @@ describe('Convert 1D', function () {
     bruker['1r'] = new IOBuffer(fs.readFileSync('test/1D/pdata/1/1r'));
     bruker['1i'] = new IOBuffer(fs.readFileSync('test/1D/pdata/1/1i'));
     var result = convert(bruker, { xy: true, keepSpectra: true });
-    expect(result.spectra[0].data[0].y.length).toEqual(result.info.$SI);
-    expect(result.spectra[1].data[0].y.length).toEqual(result.info.$SI);
+    expect(result.spectra[0].data.y.length).toEqual(result.info.$SI);
+    expect(result.spectra[1].data.y.length).toEqual(result.info.$SI);
     ['JCAMPDX', 'ORIGIN', 'OWNER'].forEach((key) =>
       expect(result.info).toHaveProperty(key)
     );
     expect(result.info.JCAMPDX).toEqual('5.0');
-    expect(result.spectra[0].data[0].x.length).toBe(32768);
-    expect(result.spectra[0].data[0].x.slice(0, 5)).toEqual([
+    expect(result.spectra[0].data.x.length).toBe(32768);
+    expect(result.spectra[0].data.x.slice(0, 5)).toEqual([
       16.49938,
       16.498749855575984,
       16.49811971115197,
       16.497489566727953,
       16.496859422303938
     ]);
-    expect(result.spectra[0].data[0].y.length).toBe(32768);
-    expect(result.spectra[0].data[0].y.slice(0, 5)).toEqual([
+    expect(result.spectra[0].data.y.length).toBe(32768);
+    expect(result.spectra[0].data.y.slice(0, 5)).toEqual([
       74533,
       134247,
       155042,
@@ -50,8 +50,8 @@ describe('Convert 1D', function () {
     );
 
     var len = result.spectra[0].nbPoints;
-    expect(typeof result.spectra[0].data[0].y[len - 1]).toBe('number');
-    expect(typeof result.spectra[1].data[0].y[len - 1]).toBe('number');
+    expect(typeof result.spectra[0].data.y[len - 1]).toBe('number');
+    expect(typeof result.spectra[1].data.y[len - 1]).toBe('number');
     [
       'dataType',
       'dataTable',
@@ -63,16 +63,16 @@ describe('Convert 1D', function () {
       'firstX',
       'lastX'
     ].forEach((key) => expect(result.spectra[0]).toHaveProperty(key));
-    expect(result.spectra[0].data[0].x.length).toBe(65536);
-    expect(result.spectra[0].data[0].x.slice(0, 5)).toEqual([
+    expect(result.spectra[0].data.x.length).toBe(65536);
+    expect(result.spectra[0].data.x.slice(0, 5)).toEqual([
       0,
       0.000315065458655465,
       0.00063013091731093,
       0.0009451963759663951,
       0.00126026183462186
     ]);
-    expect(result.spectra[0].data[0].y.length).toBe(65536);
-    expect(result.spectra[0].data[0].y.slice(0, 10)).toEqual([
+    expect(result.spectra[0].data.y.length).toBe(65536);
+    expect(result.spectra[0].data.y.slice(0, 10)).toEqual([
       0,
       0,
       0,
@@ -98,9 +98,10 @@ describe('Convert 2D', function () {
     bruker['2rr'] = new IOBuffer(fs.readFileSync('test/2D/2rr'));
 
     var result = convert(bruker, { xy: true, keepSpectra: true });
+    // console.log(result.spectra[1023].data)
     expect(result.spectra).toHaveLength(result.info.nbSubSpectra);
-    expect(result.spectra[1023].data[0].y).toHaveLength(result.info.$SI);
-    expect(typeof result.spectra[1023].data[0].y[4]).toBe('number');
+    expect(result.spectra[1023].data.y).toHaveLength(result.info.$SI);
+    expect(typeof result.spectra[1023].data.y[4]).toBe('number');
 
     ['JCAMPDX', 'ORIGIN', 'OWNER'].forEach((key) =>
       expect(result.info).toHaveProperty(key)
@@ -136,7 +137,7 @@ describe('Test with zip file', function () {
 
   it('Single spectrum', async function () {
     var zip = fs.readFileSync('test/zip/single.zip');
-    var result = await convertZIP(zip, { xy: true, keepSpectra: true });
+    var result = await convertZIP(zip, { xy: true, keepSpectra: true })
     expect(result[0].value.spectra[0].dataType).toBe('NMR FID');
     expect(result[1].value.spectra[0].dataType).toBe('NMR Spectrum');
     expect(result[0].value.spectra).toHaveLength(2);
