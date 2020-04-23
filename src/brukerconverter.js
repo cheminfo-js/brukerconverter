@@ -84,7 +84,6 @@ function convert(brukerFiles, options) {
   } else {
     throw new RangeError('The current files are invalid');
   }
-
   if (result.twoD && !options.noContours) {
     add2D(result);
     if (result.profiling) {
@@ -100,23 +99,21 @@ function convert(brukerFiles, options) {
 
   let spectra = result.spectra;
   if (options.xy) {
-    // the spectraData should not be a oneD array but an object with x and y
+    //the spectraData should not be a oneD array but an object with x and y
     if (spectra.length > 0) {
       for (let i = 0; i < spectra.length; i++) {
         let spectrum = spectra[i];
-        if (spectrum.data.length > 0) {
-          for (let j = 0; j < spectrum.data.length; j++) {
-            let data = spectrum.data[j];
-            let newData = {
-              x: new Array(data.length / 2),
-              y: new Array(data.length / 2),
-            };
-            for (let k = 0; k < data.length; k = k + 2) {
-              newData.x[k / 2] = data[k];
-              newData.y[k / 2] = data[k + 1];
-            }
-            spectrum.data[j] = newData;
+        if (spectrum.data.length) {
+          let data = spectrum.data;
+          let newData = {
+            x: new Array(data.length / 2),
+            y: new Array(data.length / 2),
+          };
+          for (let k = 0; k < data.length; k = k + 2) {
+            newData.x[k / 2] = data[k];
+            newData.y[k / 2] = data[k + 1];
           }
+          spectrum.data = newData;
         }
       }
     }
@@ -128,15 +125,14 @@ function convert(brukerFiles, options) {
 function convert1D(files, options) {
   let result = parseData(files.procs || '', options);
   let temp = parseData(files.acqus || '', options);
-
-  let keys = Object.keys(temp.info);
+  let keys = Object.keys(temp.info || {});
+  if (!result.info) result = temp;
   for (let i = 0; i < keys.length; i++) {
     let currKey = keys[i];
     if (result.info[currKey] === undefined) {
       result.info[currKey] = temp.info[currKey];
     }
   }
-
   if (files['1r'] || files['1i']) {
     if (files['1r']) {
       setXYSpectrumData(files['1r'], result, '1r', true);
@@ -156,7 +152,6 @@ function convert2D(files, options) {
   if (files['2rr']) {
     result = parseData(files.procs, options);
     temp = parseData(files.acqus, options);
-
     let keys = Object.keys(temp.info);
     for (let i = 0; i < keys.length; i++) {
       let currKey = keys[i];
@@ -164,7 +159,6 @@ function convert2D(files, options) {
         result.info[currKey] = temp.info[currKey];
       }
     }
-
     temp = parseData(files.proc2s, options);
     result.info.nbSubSpectra = temp.info.$SI = parseInt(temp.info.$SI, 10);
     sf = temp.info.$SF = parseFloat(temp.info.$SF);
@@ -238,6 +232,7 @@ function setXYSpectrumData(file, spectra, store, real) {
   spectra.info.$BF1 = bf;
   spectra.info.$SFO1 = sf;
   spectra.info.brukerReference = bf;
+  spectra.info.DATATYPE = 'NMR Spectrum';
 
   let endian = parseInt(spectra.info.$BYTORDP, 10);
   endian = endian ? 0 : 1;
@@ -260,7 +255,7 @@ function setXYSpectrumData(file, spectra, store, real) {
       lastX: offset - swP / sf,
       xUnit: 'PPM',
       yUnit: 'Arbitrary',
-      data: [new Array(td * 2)], // [{x:new Array(td),y:new Array(td)}],
+      data: new Array(td * 2), // [{x:new Array(td),y:new Array(td)}],
       isXYdata: true,
       observeFrequency: sf,
       title: spectra.info.TITLE,
@@ -272,25 +267,19 @@ function setXYSpectrumData(file, spectra, store, real) {
 
     if (real) {
       for (let k = 0; k < td; ++k) {
-        toSave.data[0][2 * k] = x;
-        toSave.data[0][2 * k + 1] = file.readInt32();
-        if (
-          toSave.data[0][2 * k + 1] === null ||
-          isNaN(toSave.data[0][2 * k + 1])
-        ) {
-          toSave.data[0][2 * k + 1] = 0;
+        toSave.data[2 * k] = x;
+        toSave.data[2 * k + 1] = file.readInt32();
+        if (toSave.data[2 * k + 1] === null || isNaN(toSave.data[2 * k + 1])) {
+          toSave.data[2 * k + 1] = 0;
         }
         x += deltaX;
       }
     } else {
       for (let k = td - 1; k >= 0; --k) {
-        toSave.data[0][2 * k] = x;
-        toSave.data[0][2 * k + 1] = file.readInt32();
-        if (
-          toSave.data[0][2 * k + 1] === null ||
-          isNaN(toSave.data[0][2 * k + 1])
-        ) {
-          toSave.data[0][2 * k + 1] = 0;
+        toSave.data[2 * k] = x;
+        toSave.data[2 * k + 1] = file.readInt32();
+        if (toSave.data[2 * k + 1] === null || isNaN(toSave.data[2 * k + 1])) {
+          toSave.data[2 * k + 1] = 0;
         }
         x += deltaX;
       }
@@ -303,9 +292,11 @@ function setXYSpectrumData(file, spectra, store, real) {
 function parseData(file, options) {
   let keepRecordsRegExp = /.*/;
   if (options.keepRecordsRegExp) keepRecordsRegExp = options.keepRecordsRegExp;
-  return Converter.convert(file, {
+  let result = Converter.convert(file, {
     keepRecordsRegExp: keepRecordsRegExp,
   });
+
+  return result.flatten.length === 0 ? {} : result.flatten[0];
 }
 
 function setFIDSpectrumData(file, spectra) {
@@ -317,6 +308,7 @@ function setFIDSpectrumData(file, spectra) {
   let SF = (spectra.info.$SFO1 = parseFloat(spectra.info.$SFO1));
   let BF = parseFloat(spectra.info.$BF1);
   spectra.info.$BF1 = BF;
+  spectra.info.DATATYPE = 'NMR FID';
 
   // var DW = 1 / (2 * SW_h);
   // var AQ = td * DW;
@@ -362,7 +354,7 @@ function setFIDSpectrumData(file, spectra) {
       nucleus: spectra.info.$NUC1 ? spectra.info.$NUC1 : undefined,
       xUnit: 'Sec',
       yUnit: 'Arbitrary',
-      data: [new Array(2 * td)], // [{x:new Array(td),y:new Array(td)}],
+      data: new Array(2 * td), // [{x:new Array(td),y:new Array(td)}],
       isXYdata: true,
       observeFrequency: SF,
       title: spectra.info.TITLE,
@@ -377,21 +369,21 @@ function setFIDSpectrumData(file, spectra) {
       if (y === null || isNaN(y)) {
         y = 0;
       }
-      spectra.spectra[j * 2].data[0][2 * i + 1] = y;
-      spectra.spectra[j * 2].data[0][2 * i] = x;
+      spectra.spectra[j * 2].data[2 * i + 1] = y;
+      spectra.spectra[j * 2].data[2 * i] = x;
       y = file.readInt32();
       if (y === null || isNaN(y)) {
         y = 0;
       }
-      spectra.spectra[j * 2 + 1].data[0][2 * i + 1] = y;
-      spectra.spectra[j * 2 + 1].data[0][2 * i] = x;
+      spectra.spectra[j * 2 + 1].data[2 * i + 1] = y;
+      spectra.spectra[j * 2 + 1].data[2 * i] = x;
     }
 
     for (; i < td; i++, x = i * DW) {
-      spectra.spectra[j * 2].data[0][2 * i + 1] = 0;
-      spectra.spectra[j * 2].data[0][2 * i] = x;
-      spectra.spectra[j * 2 + 1].data[0][2 * i + 1] = 0;
-      spectra.spectra[j * 2 + 1].data[0][2 * i] = x;
+      spectra.spectra[j * 2].data[2 * i + 1] = 0;
+      spectra.spectra[j * 2].data[2 * i] = x;
+      spectra.spectra[j * 2 + 1].data[2 * i + 1] = 0;
+      spectra.spectra[j * 2 + 1].data[2 * i] = x;
     }
   }
 }
@@ -404,17 +396,17 @@ function setFIDSpectrumData(file, spectra) {
 
 function convertTo3DZ(spectra) {
   let noise = 0;
-  let minZ = spectra[0].data[0][0];
+  let minZ = spectra[0].data[0];
   let maxZ = minZ;
   let ySize = spectra.length;
-  let xSize = spectra[0].data[0].length / 2;
+  let xSize = spectra[0].data.length / 2;
   let z = new Array(ySize);
   for (let i = 0; i < ySize; i++) {
     z[i] = new Array(xSize);
     for (let j = 0; j < xSize; j++) {
-      z[i][j] = spectra[i].data[0][j * 2 + 1];
-      if (z[i][j] < minZ) minZ = spectra[i].data[0][j * 2 + 1];
-      if (z[i][j] > maxZ) maxZ = spectra[i].data[0][j * 2 + 1];
+      z[i][j] = spectra[i].data[j * 2 + 1];
+      if (z[i][j] < minZ) minZ = spectra[i].data[j * 2 + 1];
+      if (z[i][j] > maxZ) maxZ = spectra[i].data[j * 2 + 1];
       if (i !== 0 && j !== 0) {
         noise +=
           Math.abs(z[i][j] - z[i][j - 1]) + Math.abs(z[i][j] - z[i - 1][j]);
@@ -423,8 +415,8 @@ function convertTo3DZ(spectra) {
   }
   return {
     z: z,
-    minX: spectra[0].data[0][0],
-    maxX: spectra[0].data[0][spectra[0].data[0].length - 2],
+    minX: spectra[0].data[0],
+    maxX: spectra[0].data[spectra[0].data.length - 2],
     minY: spectra[0].pageValue,
     maxY: spectra[ySize - 1].pageValue,
     minZ: minZ,
