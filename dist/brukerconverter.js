@@ -1,6 +1,6 @@
 /**
  * brukerconverter - Parse and convert Bruker raw data
- * @version v1.1.2
+ * @version v2.0.0
  * @link https://github.com/cheminfo-js/brukerconverter
  * @license MIT
  */
@@ -4776,7 +4776,7 @@ https://github.com/nodeca/pako/blob/master/LICENSE
 /* WEBPACK VAR INJECTION */(function(global) {/*!
  * The buffer module from node.js, for the browser.
  *
- * @author   Feross Aboukhadijeh <http://feross.org>
+ * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
  * @license  MIT
  */
 
@@ -6689,9 +6689,8 @@ function toByteArray(b64) {
   var curByte = 0; // if there are placeholders, only get up to the last complete 4 chars
 
   var len = placeHoldersLen > 0 ? validLen - 4 : validLen;
-  var i;
 
-  for (i = 0; i < len; i += 4) {
+  for (var i = 0; i < len; i += 4) {
     tmp = revLookup[b64.charCodeAt(i)] << 18 | revLookup[b64.charCodeAt(i + 1)] << 12 | revLookup[b64.charCodeAt(i + 2)] << 6 | revLookup[b64.charCodeAt(i + 3)];
     arr[curByte++] = tmp >> 16 & 0xFF;
     arr[curByte++] = tmp >> 8 & 0xFF;
@@ -7345,12 +7344,7 @@ process.umask = function () {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-// ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
-
-// EXPORTS
-__webpack_require__.d(__webpack_exports__, "createTree", function() { return /* reexport */ createTree; });
-__webpack_require__.d(__webpack_exports__, "convert", function() { return /* reexport */ convert; });
 
 // CONCATENATED MODULE: ./node_modules/jcampconverter/src/createTree.js
 function createTree(jcamp, options = {}) {
@@ -8405,6 +8399,8 @@ function convert(jcamp, options) {
   return result;
 }
 // CONCATENATED MODULE: ./node_modules/jcampconverter/src/index.js
+/* concated harmony reexport createTree */__webpack_require__.d(__webpack_exports__, "createTree", function() { return createTree; });
+/* concated harmony reexport convert */__webpack_require__.d(__webpack_exports__, "convert", function() { return convert; });
 
 
 
@@ -8413,11 +8409,7 @@ function convert(jcamp, options) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-// ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
-
-// EXPORTS
-__webpack_require__.d(__webpack_exports__, "IOBuffer", function() { return /* binding */ IOBuffer_IOBuffer; });
 
 // EXTERNAL MODULE: ./node_modules/iobuffer/lib-esm/text-encoding-polyfill.js
 var text_encoding_polyfill = __webpack_require__(4);
@@ -8433,6 +8425,7 @@ function encode(str) {
   return encoder.encode(str);
 }
 // CONCATENATED MODULE: ./node_modules/iobuffer/lib-esm/IOBuffer.js
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "IOBuffer", function() { return IOBuffer_IOBuffer; });
 
 const defaultByteLength = 1024 * 8;
 class IOBuffer_IOBuffer {
