@@ -1,6 +1,6 @@
 /**
  * brukerconverter - Parse and convert Bruker raw data
- * @version v2.0.0
+ * @version v2.1.0
  * @link https://github.com/cheminfo-js/brukerconverter
  * @license MIT
  */
@@ -497,16 +497,14 @@ function parseData(file, options) {
 function setFIDSpectrumData(file, spectra) {
   file = ensureIOBuffer(file);
   let td = spectra.info.$TD = parseInt(spectra.info.$TD, 10);
-  let SW = spectra.info.$SW = parseFloat(spectra.info.$SW);
+  let SW_H = spectra.info.$SW = parseFloat(spectra.info.$SWH);
   let SF = spectra.info.$SFO1 = parseFloat(spectra.info.$SFO1);
   let BF = parseFloat(spectra.info.$BF1);
   spectra.info.$BF1 = BF;
-  spectra.info.DATATYPE = 'NMR FID'; // var DW = 1 / (2 * SW_h);
-  // var AQ = td * DW;
-
-  let AQ = SW;
-  let DW = AQ / (td - 1);
-  let endian = parseInt(spectra.info.$BYTORDP, 10);
+  spectra.info.DATATYPE = 'NMR FID';
+  let DW = 1 / (2 * SW_H);
+  let AQ = td * DW;
+  let endian = parseInt(spectra.info.$BYTORDA, 10);
   endian = endian ? 0 : 1;
 
   if (endian) {
