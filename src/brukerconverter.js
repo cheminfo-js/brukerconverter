@@ -303,7 +303,7 @@ function setFIDSpectrumData(file, spectra) {
   file = ensureIOBuffer(file);
   let td = (spectra.info.$TD = parseInt(spectra.info.$TD, 10));
 
-  let SW_H = (spectra.info.$SW = parseFloat(spectra.info.$SWH));
+  let SW_H = (spectra.info.$SWH = parseFloat(spectra.info.$SWH));
 
   let SF = (spectra.info.$SFO1 = parseFloat(spectra.info.$SFO1));
   let BF = parseFloat(spectra.info.$BF1);
