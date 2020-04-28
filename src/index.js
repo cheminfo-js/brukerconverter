@@ -103,7 +103,8 @@ export function convertFolder(brukerFiles, options) {
   }
 
   let spectra = result.spectra;
-  if (options.xy) {
+
+  if (options.xy && !!spectra) {
     //the spectraData should not be a oneD array but an object with x and y
     if (spectra.length > 0) {
       for (let i = 0; i < spectra.length; i++) {
