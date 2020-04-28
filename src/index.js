@@ -1,6 +1,6 @@
 import { IOBuffer } from 'iobuffer';
 import { convert as convertJcamp } from 'jcampconverter';
-import JSZip from 'jszip';
+import JSZip from 'jszip/dist/jszip';
 
 const BINARY = 1;
 const TEXT = 2;
