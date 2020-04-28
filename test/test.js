@@ -1,18 +1,17 @@
-const fs = require('fs');
+import fs from 'fs';
 
-const { IOBuffer } = require('iobuffer');
+import { IOBuffer } from 'iobuffer';
 
-const convert = require('../src/brukerconverter').convertFolder;
-const convertZIP = require('../src/brukerconverter').convertZip;
+import { convertFolder, convertZip } from '../src/index';
 
-describe('Convert 1D', function() {
-  it('Main test', function() {
+describe('Convert 1D', function () {
+  it('Main test', function () {
     let bruker = {};
     bruker.procs = fs.readFileSync('test/1D/pdata/1/procs', 'utf8');
 
     bruker['1r'] = new IOBuffer(fs.readFileSync('test/1D/pdata/1/1r'));
     bruker['1i'] = new IOBuffer(fs.readFileSync('test/1D/pdata/1/1i'));
-    let result = convert(bruker, { xy: true, keepSpectra: true });
+    let result = convertFolder(bruker, { xy: true, keepSpectra: true });
     expect(result.spectra[0].data.y.length).toEqual(result.info.$SI);
     expect(result.spectra[1].data.y.length).toEqual(result.info.$SI);
     ['JCAMPDX', 'ORIGIN', 'OWNER'].forEach((key) =>
@@ -37,13 +36,13 @@ describe('Convert 1D', function() {
     ]);
   });
 
-  it('FID spectra', function() {
+  it('FID spectra', function () {
     let bruker = {};
     bruker.procs = fs.readFileSync('test/1D/pdata/1/procs', 'utf8');
     bruker.acqus = fs.readFileSync('test/1D/acqus', 'utf8');
     bruker.fid = new IOBuffer(fs.readFileSync('test/1D/fid'));
 
-    let result = convert(bruker, { xy: true, keepSpectra: true });
+    let result = convertFolder(bruker, { xy: true, keepSpectra: true });
     expect(result.spectra.length).toEqual(2);
     ['JCAMPDX', 'ORIGIN', 'OWNER'].forEach((key) =>
       expect(result.info).toHaveProperty(key),
@@ -87,9 +86,9 @@ describe('Convert 1D', function() {
   });
 });
 
-describe('Convert 2D', function() {
+describe('Convert 2D', function () {
   let bruker = {};
-  it('Test with 2rr', function() {
+  it('Test with 2rr', function () {
     bruker.procs = fs.readFileSync('test/2D/procs', 'utf8');
     bruker.proc2s = fs.readFileSync('test/2D/proc2s', 'utf8');
     bruker.acqus = fs.readFileSync('test/2D/acqus', 'utf8');
@@ -97,7 +96,7 @@ describe('Convert 2D', function() {
     bruker.ser = new IOBuffer(fs.readFileSync('test/2D/ser'));
     bruker['2rr'] = new IOBuffer(fs.readFileSync('test/2D/2rr'));
 
-    let result = convert(bruker, { xy: true, keepSpectra: true });
+    let result = convertFolder(bruker, { xy: true, keepSpectra: true });
     // console.log(result.spectra[1023].data)
     expect(result.spectra).toHaveLength(result.info.nbSubSpectra);
     expect(result.spectra[1023].data.y).toHaveLength(result.info.$SI);
@@ -119,10 +118,10 @@ describe('Convert 2D', function() {
   });
 });
 
-describe('Test with zip file', function() {
-  it('Set of spectra 1', async function() {
+describe('Test with zip file', function () {
+  it('Set of spectra 1', async function () {
     let zip = fs.readFileSync('test/zip/hrva034.zip');
-    let result = await convertZIP(zip, {
+    let result = await convertZip(zip, {
       xy: true,
       keepSpectra: true,
       noContours: true,
@@ -130,14 +129,14 @@ describe('Test with zip file', function() {
     expect(result).toHaveLength(10);
   });
 
-  it('Set of spectra 2', async function() {
+  it('Set of spectra 2', async function () {
     let zip = fs.readFileSync('test/zip/list.zip');
-    let result = await convertZIP(zip, { xy: true, keepSpectra: true });
+    let result = await convertZip(zip, { xy: true, keepSpectra: true });
   });
 
-  it('Single spectrum', async function() {
+  it('Single spectrum', async function () {
     let zip = fs.readFileSync('test/zip/single.zip');
-    let result = await convertZIP(zip, { xy: true, keepSpectra: true });
+    let result = await convertZip(zip, { xy: true, keepSpectra: true });
     expect(result[0].value.spectra[0].dataType).toBe('NMR FID');
     expect(result[1].value.spectra[0].dataType).toBe('NMR Spectrum');
     expect(result[0].value.spectra).toHaveLength(2);
@@ -147,10 +146,10 @@ describe('Test with zip file', function() {
   });
 });
 
-describe('Test with pseudo SER file', function() {
-  it('N spectra', async function() {
+describe('Test with pseudo SER file', function () {
+  it('N spectra', async function () {
     let zip = fs.readFileSync('test/zip/21-BOMA-new.zip');
-    let result = await convertZIP(zip, {
+    let result = await convertZip(zip, {
       xy: true,
       keepSpectra: true,
       noContours: true,

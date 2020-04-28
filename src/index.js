@@ -1,11 +1,11 @@
-const Converter = require('jcampconverter');
-const { IOBuffer } = require('iobuffer');
-const JSZip = require('jszip');
+import { IOBuffer } from 'iobuffer';
+import { convert as convertJcamp } from 'jcampconverter';
+import JSZip from 'jszip';
 
 const BINARY = 1;
 const TEXT = 2;
 
-function readZIP(zipFile, options) {
+export function convertZip(zipFile, options) {
   options = options || {};
   const jsZip = new JSZip();
 
@@ -21,7 +21,7 @@ function readZIP(zipFile, options) {
       '1i': BINARY,
       '2rr': BINARY,
     };
-    let folders = zip.filter(function(relativePath) {
+    let folders = zip.filter(function (relativePath) {
       if (relativePath.match('__MACOSX')) return false;
       if (
         relativePath.endsWith('ser') ||
@@ -41,7 +41,7 @@ function readZIP(zipFile, options) {
       name = name.substr(0, name.lastIndexOf('/') + 1);
       promises.push(name);
       let currFolder = zip.folder(name);
-      let currFiles = currFolder.filter(function(relativePath) {
+      let currFiles = currFolder.filter(function (relativePath) {
         return files[relativePath] ? true : false;
       });
       if (name.indexOf('pdata') >= 0) {
@@ -66,14 +66,17 @@ function readZIP(zipFile, options) {
           name = result[k];
           brukerFiles[name] = result[k + 1];
         }
-        return { filename: result[0], value: convert(brukerFiles, options) };
+        return {
+          filename: result[0],
+          value: convertFolder(brukerFiles, options),
+        };
       });
     }
     return Promise.all(spectra);
   });
 }
 
-function convert(brukerFiles, options) {
+export function convertFolder(brukerFiles, options) {
   options = options || {};
   let start = new Date();
   let result;
@@ -292,7 +295,7 @@ function setXYSpectrumData(file, spectra, store, real) {
 function parseData(file, options) {
   let keepRecordsRegExp = /.*/;
   if (options.keepRecordsRegExp) keepRecordsRegExp = options.keepRecordsRegExp;
-  let result = Converter.convert(file, {
+  let result = convertJcamp(file, {
     keepRecordsRegExp: keepRecordsRegExp,
   });
 
@@ -610,8 +613,3 @@ function ensureIOBuffer(data) {
   }
   return data;
 }
-
-module.exports = {
-  convertZip: readZIP,
-  convertFolder: convert,
-};
