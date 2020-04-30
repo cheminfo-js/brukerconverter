@@ -7,8 +7,7 @@ import convertTo3DZ from './convertTo3DZ';
 const BINARY = 1;
 const TEXT = 2;
 
-export function convertZip(zipFile, options) {
-  options = options || {};
+export function convertZip(zipFile, options = {}) {
   const jsZip = new JSZip();
 
   return jsZip.loadAsync(zipFile, options).then((zip) => {
@@ -89,8 +88,8 @@ export function convertFolder(brukerFiles, options) {
   } else {
     throw new RangeError('The current files are invalid');
   }
-  if (result.twoD && !options.noContours) {
-    add2D(result);
+  if (result.twoD) {
+    add2D(result, options);
     if (result.profiling) {
       result.profiling.push({
         action: 'Finished countour plot calculation',
@@ -391,10 +390,11 @@ function setFIDSpectrumData(file, spectra) {
   }
 }
 
-function add2D(result) {
+function add2D(result, options) {
   let zData = convertTo3DZ(result.spectra);
-  result.contourLines = generateContourLines(zData);
-  // delete zData.z;
+  if (!options.noContours) {
+    result.contourLines = generateContourLines(zData);
+  }
   result.minMax = zData;
 }
 
