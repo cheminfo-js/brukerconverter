@@ -183,7 +183,6 @@ function convert2D(files, options) {
     result.info.$SF = parseFloat(temp.info.$SFO1);
     result.info.$OFFSET = 0;
     sf = temp.info.$SFO1 = parseFloat(temp.info.$SFO1);
-    sf = 1;
     offset = 0;
     result.info.$AXNUC = result.info.$NUC1;
     temp.info.$AXNUC = temp.info.$NUC1;
@@ -395,7 +394,7 @@ function setFIDSpectrumData(file, spectra) {
 function add2D(result) {
   let zData = convertTo3DZ(result.spectra);
   result.contourLines = generateContourLines(zData);
-  delete zData.z;
+  // delete zData.z;
   result.minMax = zData;
 }
 
