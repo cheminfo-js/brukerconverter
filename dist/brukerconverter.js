@@ -1,6 +1,6 @@
 /**
  * brukerconverter - Parse and convert Bruker raw data
- * @version v2.1.2
+ * @version v3.0.0
  * @link https://github.com/cheminfo-js/brukerconverter
  * @license MIT
  */
@@ -1773,7 +1773,7 @@
     var jszip = createCommonjsModule(function (module, exports) {
       /*!
       
-      JSZip v3.3.0 - A JavaScript class for generating and reading zip files
+      JSZip v3.5.0 - A JavaScript class for generating and reading zip files
       <http://stuartk.com/jszip>
       
       (c) 2009-2016 Stuart Knightley <stuart [at] stuartk.com>
@@ -2883,7 +2883,7 @@
             JSZip.defaults = require('./defaults'); // TODO find a better way to handle this version,
             // a require('package.json').version doesn't work with webpack, see #327
 
-            JSZip.version = "3.4.0";
+            JSZip.version = "3.5.0";
 
             JSZip.loadAsync = function (content, options) {
               return new JSZip().loadAsync(content, options);
@@ -6136,7 +6136,7 @@
                   this.extraFields = {};
                 }
 
-                while (reader.index < end) {
+                while (reader.index + 4 < end) {
                   extraFieldId = reader.readInt(2);
                   extraFieldLength = reader.readInt(2);
                   extraFieldValue = reader.readData(extraFieldLength);
@@ -6146,6 +6146,8 @@
                     value: extraFieldValue
                   };
                 }
+
+                reader.setIndex(end);
               },
 
               /**
@@ -14982,6 +14984,62 @@
       });
     });
 
+    /**
+     * Those functions should disappear if add2D becomes accessible in jcampconvert
+     * @param spectra
+     * @returns {{z: Array, minX: *, maxX: *, minY: *, maxY: *, minZ: *, maxZ: *, noise: number}}
+     */
+    function convertTo3DZ$1(spectra) {
+      let noise = 0;
+      let minZ = spectra[0].data[0];
+      let maxZ = minZ;
+      let ySize = spectra.length;
+      let xSize = spectra[0].data.length / 2;
+      let z = new Array(ySize);
+
+      for (let i = 0; i < ySize; i++) {
+        z[i] = new Array(xSize);
+
+        for (let j = 0; j < xSize; j++) {
+          z[i][j] = spectra[i].data[j * 2 + 1];
+          if (z[i][j] < minZ) minZ = spectra[i].data[j * 2 + 1];
+          if (z[i][j] > maxZ) maxZ = spectra[i].data[j * 2 + 1];
+
+          if (i !== 0 && j !== 0) {
+            noise += Math.abs(z[i][j] - z[i][j - 1]) + Math.abs(z[i][j] - z[i - 1][j]);
+          }
+        }
+      }
+
+      const firstX = spectra[0].data[0];
+      const lastX = spectra[0].data[spectra[0].data.length - 2]; // has to be -2 because it is a 1D array [x,y,x,y,...]
+
+      const firstY = spectra[0].pageValue;
+      const lastY = spectra[ySize - 1].pageValue; // Because the min / max value are the only information about the matrix if we invert
+      // min and max we need to invert the array
+
+      if (firstX > lastX) {
+        for (let spectrum of z) {
+          spectrum.reverse();
+        }
+      }
+
+      if (firstY > lastY) {
+        z.reverse();
+      }
+
+      return {
+        z,
+        minX: Math.min(firstX, lastX),
+        maxX: Math.max(firstX, lastX),
+        minY: Math.min(firstY, lastY),
+        maxY: Math.max(firstY, lastY),
+        minZ: minZ,
+        maxZ: maxZ,
+        noise: noise / ((ySize - 1) * (xSize - 1) * 2)
+      };
+    }
+
     function generateContourLines$1(zData) {
       let noise = zData.noise;
       let z = zData.z;
@@ -15101,62 +15159,6 @@
       };
     }
 
-    /**
-     * Those functions should disappear if add2D becomes accessible in jcampconvert
-     * @param spectra
-     * @returns {{z: Array, minX: *, maxX: *, minY: *, maxY: *, minZ: *, maxZ: *, noise: number}}
-     */
-    function convertTo3DZ$1(spectra) {
-      let noise = 0;
-      let minZ = spectra[0].data[0];
-      let maxZ = minZ;
-      let ySize = spectra.length;
-      let xSize = spectra[0].data.length / 2;
-      let z = new Array(ySize);
-
-      for (let i = 0; i < ySize; i++) {
-        z[i] = new Array(xSize);
-
-        for (let j = 0; j < xSize; j++) {
-          z[i][j] = spectra[i].data[j * 2 + 1];
-          if (z[i][j] < minZ) minZ = spectra[i].data[j * 2 + 1];
-          if (z[i][j] > maxZ) maxZ = spectra[i].data[j * 2 + 1];
-
-          if (i !== 0 && j !== 0) {
-            noise += Math.abs(z[i][j] - z[i][j - 1]) + Math.abs(z[i][j] - z[i - 1][j]);
-          }
-        }
-      }
-
-      const firstX = spectra[0].data[0];
-      const lastX = spectra[0].data[spectra[0].data.length - 2]; // has to be -2 because it is a 1D array [x,y,x,y,...]
-
-      const firstY = spectra[0].pageValue;
-      const lastY = spectra[ySize - 1].pageValue; // Because the min / max value are the only information about the matrix if we invert
-      // min and max we need to invert the array
-
-      if (firstX > lastX) {
-        for (let spectrum of z) {
-          spectrum.reverse();
-        }
-      }
-
-      if (firstY > lastY) {
-        z.reverse();
-      }
-
-      return {
-        z,
-        minX: Math.min(firstX, lastX),
-        maxX: Math.max(firstX, lastX),
-        minY: Math.min(firstY, lastY),
-        maxY: Math.max(firstY, lastY),
-        minZ: minZ,
-        maxZ: maxZ,
-        noise: noise / ((ySize - 1) * (xSize - 1) * 2)
-      };
-    }
-
     const BINARY = 1;
     const TEXT = 2;
     function convertZip(zipFile, options = {}) {
@@ -15197,6 +15199,12 @@
           if (name.indexOf('pdata') >= 0) {
             promises.push('acqus');
             promises.push(zip.file(name.replace(/pdata\/[0-9]+\//, 'acqus')).async('string'));
+            let acqu2s = zip.file(name.replace(/pdata\/[0-9]+\//, 'acqu2s'));
+
+            if (acqu2s) {
+              promises.push('acqu2s');
+              promises.push(acqu2s.async('string'));
+            }
           }
 
           for (let j = 0; j < currFiles.length; ++j) {
@@ -15240,6 +15248,29 @@
         result = convert1D(brukerFiles, options);
       } else {
         throw new RangeError('The current files are invalid');
+      } //normalizing info
+
+
+      result.info.$DATE = parseFloat(result.info.$DATE);
+
+      if (result.info.$GRPDLY) {
+        result.info.$GRPDLY = parseFloat(result.info.$GRPDLY[0]);
+        result.info.$DSPFVS = parseFloat(result.info.$DSPFVS[0]);
+        result.info.$DECIM = parseFloat(result.info.$DECIM[0]);
+      }
+
+      for (let key in result.info) {
+        if (!Array.isArray(result.info[key])) continue;
+
+        if (key.indexOf('$') > -1) {
+          if (result.info[key].length === 1) {
+            result.info[key] = result.info[key][0];
+          } else if (typeof result.info[key][0] === 'string' && result.info[key][0].indexOf('(0..') > -1) {
+            result.info[key] = result.info[key][0];
+          }
+        } else {
+          result.info[key] = result.info[key][0];
+        }
       }
 
       if (result.twoD) {
@@ -15289,14 +15320,15 @@
     function convert1D(files, options) {
       let result = parseData(files.procs || '', options);
       let temp = parseData(files.acqus || '', options);
-      let keys = Object.keys(temp.info || {});
-      if (!result.info) result = temp;
+      if (!Object.keys(result).length) result = temp;
 
-      for (let i = 0; i < keys.length; i++) {
-        let currKey = keys[i];
+      for (let key in result.info) {
+        result.info[key] = [result.info[key]];
+      }
 
+      for (let currKey in temp.info) {
         if (result.info[currKey] === undefined) {
-          result.info[currKey] = temp.info[currKey];
+          result.info[currKey] = [temp.info[currKey]];
         }
       }
 
@@ -15316,46 +15348,63 @@
     }
 
     function convert2D(files, options) {
-      let sf, swP, offset, result, temp;
+      let sf, swP, offset, temp, temp2, result;
 
-      if (files['2rr']) {
+      if (files.proc2s && files.procs) {
         result = parseData(files.procs, options);
-        temp = parseData(files.acqus, options);
-        let keys = Object.keys(temp.info);
+        temp = parseData(files.proc2s, options);
 
-        for (let i = 0; i < keys.length; i++) {
-          let currKey = keys[i];
+        for (let key in temp.info) {
+          if (result.info[key]) {
+            if (!Array.isArray(result.info[key])) {
+              result.info[key] = [result.info[key]];
+            }
 
-          if (result.info[currKey] === undefined) {
-            result.info[currKey] = temp.info[currKey];
+            result.info[key].push(temp.info[key]);
+          } else if (result.info[key] === undefined) {
+            result.info[key] = [temp.info[key]];
           }
         }
-
-        temp = parseData(files.proc2s, options);
-        result.info.nbSubSpectra = temp.info.$SI = parseInt(temp.info.$SI, 10);
-        sf = temp.info.$SF = parseFloat(temp.info.$SF);
-        swP = temp.info.$SWP = parseFloat(temp.info.$SWP);
-        offset = temp.info.$OFFSET = parseFloat(temp.info.$OFFSET);
-      } else if (files.ser) {
-        result = parseData(files.acqus, options);
-        temp = parseData(files.acqu2s, options);
-        result.info.nbSubSpectra = temp.info.$SI = parseInt(temp.info.$TD, 10);
-        result.info.$SI = parseInt(result.info.$TD, 10); // SW_p = temp.info['$SWH'] = parseFloat(temp.info['$SWH']);
-
-        swP = temp.info.$SW;
-        result.info.$SWP = result.info.$SWH;
-        result.info.$SF = parseFloat(temp.info.$SFO1);
-        result.info.$OFFSET = 0;
-        sf = temp.info.$SFO1 = parseFloat(temp.info.$SFO1);
-        offset = 0;
-        result.info.$AXNUC = result.info.$NUC1;
-        temp.info.$AXNUC = temp.info.$NUC1;
       }
 
+      temp = parseData(files.acqus, options);
+      temp2 = parseData(files.acqu2s, options);
+
+      for (let key in temp2.info) {
+        if (temp.info[key]) {
+          if (!Array.isArray(temp.info[key])) {
+            temp.info[key] = [temp.info[key]];
+          }
+
+          temp.info[key].push(temp2.info[key]);
+        } else if (temp.info[key] === undefined) {
+          temp.info[key] = [temp2.info[key]];
+        }
+      }
+
+      if (!result) result = temp;
+
+      for (let key in temp.info) {
+        if (result.info[key] === undefined) {
+          result.info[key] = temp.info[key];
+        }
+      }
+
+      for (let key in result.info) {
+        if (!Array.isArray(result.info[key])) {
+          result.info[key] = [result.info[key]];
+        }
+      }
+
+      result.info.nbSubSpectra = files['2rr'] ? parseInt(result.info.$SI[1], 10) : parseInt(result.info.$TD[1], 10);
+      if (result.info.$SWP) result.info.$SWP = result.info.$SWH;
+      if (!result.info.$SF) result.info.$SF = result.info.$SFO1;
+      if (!result.info.$OFFSET) result.info.$OFFSET = 0;
+      sf = parseFloat(result.info.$SF);
+      swP = parseFloat(result.info.$SWP || result.info.$SW);
+      offset = parseFloat(result.info.$OFFSET);
       result.info.firstY = offset;
       result.info.lastY = offset - swP / sf;
-      result.info.$BF2 = sf;
-      result.info.$SFO1 = sf;
       let nbSubSpectra = result.info.nbSubSpectra;
       let pageValue = result.info.firstY;
       let deltaY = (result.info.lastY - result.info.firstY) / (nbSubSpectra - 1);
@@ -15369,35 +15418,30 @@
       for (let i = 0; i < nbSubSpectra; i++) {
         pageValue += deltaY;
         result.spectra[i].pageValue = pageValue;
-      } // var dataType = files.ser ? 'TYPE_2DNMR_FID' : 'TYPE_2DNMR_SPECTRUM';
+      }
 
-
-      result.info['2D_Y_NUCLEUS'] = temp.info.$AXNUC;
-      result.info['2D_X_NUCLEUS'] = result.info.$AXNUC;
+      result.info['2D_Y_NUCLEUS'] = result.info.$NUC1[1];
+      result.info['2D_X_NUCLEUS'] = result.info.$NUC1[0];
       result.info['2D_Y_FRECUENCY'] = sf;
       result.info['2D_Y_OFFSET'] = offset;
       result.info['2D_X_FRECUENCY'] = result.info.$SF;
       result.info['2D_X_OFFSET'] = result.info.$OFFSET;
-      result.twoD = true;
+      result.info.twoD = result.twoD = true;
       return result;
     }
 
     function setXYSpectrumData(file, spectra, store, real) {
       file = ensureIOBuffer(file);
-      let td = spectra.info.$SI = parseInt(spectra.info.$SI, 10);
+      let td = parseInt(spectra.info.$SI[0], 10);
       let swP = parseFloat(spectra.info.$SWP);
       let sf = parseFloat(spectra.info.$SF);
-      let bf = sf; // var BF = parseFloat(spectra.info["$BF1"]);
-
+      let bf = sf;
       let offset = spectra.shiftOffsetVal || parseFloat(spectra.info.$OFFSET);
       spectra.info.observeFrequency = sf;
-      spectra.info.$BF1 = bf;
-      spectra.info.$SFO1 = sf;
       spectra.info.brukerReference = bf;
       spectra.info.DATATYPE = 'NMR Spectrum';
       let endian = parseInt(spectra.info.$BYTORDP, 10);
-      endian = endian ? 0 : 1; // number of spectras
-
+      endian = endian ? 0 : 1;
       let nbSubSpectra = spectra.info.nbSubSpectra ? spectra.info.nbSubSpectra : 1;
 
       if (endian) {
@@ -15464,10 +15508,10 @@
 
     function setFIDSpectrumData(file, spectra) {
       file = ensureIOBuffer(file);
-      let td = spectra.info.$TD = parseInt(spectra.info.$TD, 10);
-      let SW_H = spectra.info.$SWH = parseFloat(spectra.info.$SWH);
-      let SF = spectra.info.$SFO1 = parseFloat(spectra.info.$SFO1);
-      let BF = parseFloat(spectra.info.$BF1);
+      let td = spectra.info.$TD[0] = parseInt(spectra.info.$TD[0], 10);
+      let SW_H = spectra.info.$SWH[0] = parseFloat(spectra.info.$SWH[0]);
+      let SF = spectra.info.$SFO1[0] = parseFloat(spectra.info.$SFO1[0]);
+      let BF = parseFloat(spectra.info.$BF1[0]);
       spectra.info.$BF1 = BF;
       spectra.info.DATATYPE = 'NMR FID';
       let DW = 1 / (2 * SW_H);
@@ -15512,9 +15556,8 @@
           xUnit: 'Sec',
           yUnit: 'Arbitrary',
           data: new Array(2 * td),
-          // [{x:new Array(td),y:new Array(td)}],
           isXYdata: true,
-          observeFrequency: SF,
+          directFrequency: SF,
           title: spectra.info.TITLE,
           deltaX: DW
         };
