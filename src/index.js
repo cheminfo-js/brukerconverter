@@ -1,8 +1,9 @@
 import { IOBuffer } from 'iobuffer';
 import { convert as convertJcamp } from 'jcampconverter';
 import JSZip from 'jszip/dist/jszip';
-import generateContourLines from './generateContourLines';
+
 import convertTo3DZ from './convertTo3DZ';
+import generateContourLines from './generateContourLines';
 
 const BINARY = 1;
 const TEXT = 2;
@@ -50,6 +51,11 @@ export function convertZip(zipFile, options = {}) {
         promises.push(
           zip.file(name.replace(/pdata\/[0-9]+\//, 'acqus')).async('string'),
         );
+        let acqu2s = zip.file(name.replace(/pdata\/[0-9]+\//, 'acqu2s'));
+        if (acqu2s) {
+          promises.push('acqu2s');
+          promises.push(acqu2s.async('string'));
+        }
       }
       for (let j = 0; j < currFiles.length; ++j) {
         let idx = currFiles[j].name.lastIndexOf('/');
@@ -88,6 +94,31 @@ export function convertFolder(brukerFiles, options) {
   } else {
     throw new RangeError('The current files are invalid');
   }
+  //normalizing info
+  result.info.$DATE = parseFloat(result.info.$DATE);
+  if (result.info.$GRPDLY) {
+    result.info.$GRPDLY = parseFloat(result.info.$GRPDLY[0]);
+    result.info.$DSPFVS = parseFloat(result.info.$DSPFVS[0]);
+    result.info.$DECIM = parseFloat(result.info.$DECIM[0]);
+  }
+
+  for (let key in result.info) {
+    if (!Array.isArray(result.info[key])) continue;
+
+    if (key.indexOf('$') > -1) {
+      if (result.info[key].length === 1) {
+        result.info[key] = result.info[key][0];
+      } else if (
+        typeof result.info[key][0] === 'string' &&
+        result.info[key][0].indexOf('(0..') > -1
+      ) {
+        result.info[key] = result.info[key][0];
+      }
+    } else {
+      result.info[key] = result.info[key][0];
+    }
+  }
+
   if (result.twoD) {
     add2D(result, options);
     if (result.profiling) {
@@ -130,14 +161,18 @@ export function convertFolder(brukerFiles, options) {
 function convert1D(files, options) {
   let result = parseData(files.procs || '', options);
   let temp = parseData(files.acqus || '', options);
-  let keys = Object.keys(temp.info || {});
-  if (!result.info) result = temp;
-  for (let i = 0; i < keys.length; i++) {
-    let currKey = keys[i];
+  if (!Object.keys(result).length) result = temp;
+
+  for (let key in result.info) {
+    result.info[key] = [result.info[key]];
+  }
+
+  for (let currKey in temp.info) {
     if (result.info[currKey] === undefined) {
-      result.info[currKey] = temp.info[currKey];
+      result.info[currKey] = [temp.info[currKey]];
     }
   }
+
   if (files['1r'] || files['1i']) {
     if (files['1r']) {
       setXYSpectrumData(files['1r'], result, '1r', true);
@@ -153,44 +188,61 @@ function convert1D(files, options) {
 }
 
 function convert2D(files, options) {
-  let sf, swP, offset, result, temp;
-  if (files['2rr']) {
+  let sf, swP, offset, temp, temp2, result;
+  if (files.proc2s && files.procs) {
     result = parseData(files.procs, options);
-    temp = parseData(files.acqus, options);
-    let keys = Object.keys(temp.info);
-    for (let i = 0; i < keys.length; i++) {
-      let currKey = keys[i];
-      if (result.info[currKey] === undefined) {
-        result.info[currKey] = temp.info[currKey];
+    temp = parseData(files.proc2s, options);
+    for (let key in temp.info) {
+      if (result.info[key]) {
+        if (!Array.isArray(result.info[key])) {
+          result.info[key] = [result.info[key]];
+        }
+        result.info[key].push(temp.info[key]);
+      } else if (result.info[key] === undefined) {
+        result.info[key] = [temp.info[key]];
       }
     }
-    temp = parseData(files.proc2s, options);
-    result.info.nbSubSpectra = temp.info.$SI = parseInt(temp.info.$SI, 10);
-    sf = temp.info.$SF = parseFloat(temp.info.$SF);
-    swP = temp.info.$SWP = parseFloat(temp.info.$SWP);
-    offset = temp.info.$OFFSET = parseFloat(temp.info.$OFFSET);
-  } else if (files.ser) {
-    result = parseData(files.acqus, options);
-    temp = parseData(files.acqu2s, options);
-    result.info.nbSubSpectra = temp.info.$SI = parseInt(temp.info.$TD, 10);
-    result.info.$SI = parseInt(result.info.$TD, 10);
-    // SW_p = temp.info['$SWH'] = parseFloat(temp.info['$SWH']);
-
-    swP = temp.info.$SW;
-
-    result.info.$SWP = result.info.$SWH;
-    result.info.$SF = parseFloat(temp.info.$SFO1);
-    result.info.$OFFSET = 0;
-    sf = temp.info.$SFO1 = parseFloat(temp.info.$SFO1);
-    offset = 0;
-    result.info.$AXNUC = result.info.$NUC1;
-    temp.info.$AXNUC = temp.info.$NUC1;
   }
 
+  temp = parseData(files.acqus, options);
+  temp2 = parseData(files.acqu2s, options);
+  for (let key in temp2.info) {
+    if (temp.info[key]) {
+      if (!Array.isArray(temp.info[key])) {
+        temp.info[key] = [temp.info[key]];
+      }
+      temp.info[key].push(temp2.info[key]);
+    } else if (temp.info[key] === undefined) {
+      temp.info[key] = [temp2.info[key]];
+    }
+  }
+
+  if (!result) result = temp;
+  for (let key in temp.info) {
+    if (result.info[key] === undefined) {
+      result.info[key] = temp.info[key];
+    }
+  }
+
+  for (let key in result.info) {
+    if (!Array.isArray(result.info[key])) {
+      result.info[key] = [result.info[key]];
+    }
+  }
+
+  result.info.nbSubSpectra = files['2rr']
+    ? parseInt(result.info.$SI[1], 10)
+    : parseInt(result.info.$TD[1], 10);
+
+  if (result.info.$SWP) result.info.$SWP = result.info.$SWH;
+  if (!result.info.$SF) result.info.$SF = result.info.$SFO1;
+  if (!result.info.$OFFSET) result.info.$OFFSET = 0;
+
+  sf = parseFloat(result.info.$SF);
+  swP = parseFloat(result.info.$SWP || result.info.$SW);
+  offset = parseFloat(result.info.$OFFSET);
   result.info.firstY = offset;
   result.info.lastY = offset - swP / sf;
-  result.info.$BF2 = sf;
-  result.info.$SFO1 = sf;
 
   let nbSubSpectra = result.info.nbSubSpectra;
   let pageValue = result.info.firstY;
@@ -207,41 +259,34 @@ function convert2D(files, options) {
     result.spectra[i].pageValue = pageValue;
   }
 
-  // var dataType = files.ser ? 'TYPE_2DNMR_FID' : 'TYPE_2DNMR_SPECTRUM';
-
-  result.info['2D_Y_NUCLEUS'] = temp.info.$AXNUC;
-  result.info['2D_X_NUCLEUS'] = result.info.$AXNUC;
+  result.info['2D_Y_NUCLEUS'] = result.info.$NUC1[1];
+  result.info['2D_X_NUCLEUS'] = result.info.$NUC1[0];
   result.info['2D_Y_FRECUENCY'] = sf;
   result.info['2D_Y_OFFSET'] = offset;
   result.info['2D_X_FRECUENCY'] = result.info.$SF;
   result.info['2D_X_OFFSET'] = result.info.$OFFSET;
-
-  result.twoD = true;
+  result.info.twoD = result.twoD = true;
 
   return result;
 }
 
 function setXYSpectrumData(file, spectra, store, real) {
   file = ensureIOBuffer(file);
-  let td = (spectra.info.$SI = parseInt(spectra.info.$SI, 10));
 
+  let td = parseInt(spectra.info.$SI[0], 10);
   let swP = parseFloat(spectra.info.$SWP);
   let sf = parseFloat(spectra.info.$SF);
   let bf = sf;
 
-  // var BF = parseFloat(spectra.info["$BF1"]);
   let offset = spectra.shiftOffsetVal || parseFloat(spectra.info.$OFFSET);
 
   spectra.info.observeFrequency = sf;
-  spectra.info.$BF1 = bf;
-  spectra.info.$SFO1 = sf;
   spectra.info.brukerReference = bf;
   spectra.info.DATATYPE = 'NMR Spectrum';
 
   let endian = parseInt(spectra.info.$BYTORDP, 10);
   endian = endian ? 0 : 1;
 
-  // number of spectras
   let nbSubSpectra = spectra.info.nbSubSpectra ? spectra.info.nbSubSpectra : 1;
 
   if (endian) {
@@ -299,18 +344,16 @@ function parseData(file, options) {
   let result = convertJcamp(file, {
     keepRecordsRegExp: keepRecordsRegExp,
   });
-
   return result.flatten.length === 0 ? {} : result.flatten[0];
 }
 
 function setFIDSpectrumData(file, spectra) {
   file = ensureIOBuffer(file);
-  let td = (spectra.info.$TD = parseInt(spectra.info.$TD, 10));
+  let td = (spectra.info.$TD[0] = parseInt(spectra.info.$TD[0], 10));
+  let SW_H = (spectra.info.$SWH[0] = parseFloat(spectra.info.$SWH[0]));
 
-  let SW_H = (spectra.info.$SWH = parseFloat(spectra.info.$SWH));
-
-  let SF = (spectra.info.$SFO1 = parseFloat(spectra.info.$SFO1));
-  let BF = parseFloat(spectra.info.$BF1);
+  let SF = (spectra.info.$SFO1[0] = parseFloat(spectra.info.$SFO1[0]));
+  let BF = parseFloat(spectra.info.$BF1[0]);
   spectra.info.$BF1 = BF;
   spectra.info.DATATYPE = 'NMR FID';
 
@@ -356,9 +399,9 @@ function setFIDSpectrumData(file, spectra) {
       nucleus: spectra.info.$NUC1 ? spectra.info.$NUC1 : undefined,
       xUnit: 'Sec',
       yUnit: 'Arbitrary',
-      data: new Array(2 * td), // [{x:new Array(td),y:new Array(td)}],
+      data: new Array(2 * td),
       isXYdata: true,
-      observeFrequency: SF,
+      directFrequency: SF,
       title: spectra.info.TITLE,
       deltaX: DW,
     };
