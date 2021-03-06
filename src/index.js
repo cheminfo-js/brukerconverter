@@ -273,21 +273,21 @@ function convert2D(files, options) {
 function setXYSpectrumData(file, spectra, store, real) {
   file = ensureIOBuffer(file);
 
-  let td = parseInt(spectra.info.$SI[0], 10);
-  let swP = parseFloat(spectra.info.$SWP);
-  let sf = parseFloat(spectra.info.$SF);
+  let td = parseInt(spectra.meta.SI[0], 10);
+  let swP = parseFloat(spectra.meta.SWP);
+  let sf = parseFloat(spectra.meta.SF);
   let bf = sf;
 
-  let offset = spectra.shiftOffsetVal || parseFloat(spectra.info.$OFFSET);
+  let offset = spectra.shiftOffsetVal || parseFloat(spectra.meta.OFFSET);
 
-  spectra.info.observeFrequency = sf;
-  spectra.info.brukerReference = bf;
-  spectra.info.DATATYPE = 'NMR Spectrum';
+  spectra.meta.observeFrequency = sf;
+  spectra.meta.brukerReference = bf;
+  spectra.meta.DATATYPE = 'NMR Spectrum';
 
-  let endian = parseInt(spectra.info.$BYTORDP, 10);
+  let endian = parseInt(spectra.meta.BYTORDP, 10);
   endian = endian ? 0 : 1;
 
-  let nbSubSpectra = spectra.info.nbSubSpectra ? spectra.info.nbSubSpectra : 1;
+  let nbSubSpectra = spectra.meta.nbSubSpectra ? spectra.meta.nbSubSpectra : 1;
 
   if (endian) {
     file.setLittleEndian();
@@ -307,7 +307,7 @@ function setXYSpectrumData(file, spectra, store, real) {
       data: new Array(td * 2), // [{x:new Array(td),y:new Array(td)}],
       isXYdata: true,
       observeFrequency: sf,
-      title: spectra.info.TITLE,
+      title: spectra.meta.TITLE,
       deltaX: -(swP / sf) / (td - 1),
     };
 
@@ -348,19 +348,20 @@ function parseData(file, options) {
 }
 
 function setFIDSpectrumData(file, spectra) {
+  console.log(spectra);
   file = ensureIOBuffer(file);
-  let td = (spectra.info.$TD[0] = parseInt(spectra.info.$TD[0], 10));
-  let SW_H = (spectra.info.$SWH[0] = parseFloat(spectra.info.$SWH[0]));
+  let td = (spectra.meta.TD[0] = parseInt(spectra.meta.TD[0], 10));
+  let SW_H = (spectra.meta.SWH[0] = parseFloat(spectra.meta.SWH[0]));
 
-  let SF = (spectra.info.$SFO1[0] = parseFloat(spectra.info.$SFO1[0]));
-  let BF = parseFloat(spectra.info.$BF1[0]);
-  spectra.info.$BF1 = BF;
-  spectra.info.DATATYPE = 'NMR FID';
+  let SF = (spectra.meta.SFO1[0] = parseFloat(spectra.meta.SFO1[0]));
+  let BF = parseFloat(spectra.meta.BF1[0]);
+  spectra.meta.BF1 = BF;
+  spectra.meta.DATATYPE = 'NMR FID';
 
   let DW = 1 / (2 * SW_H);
   let AQ = td * DW;
 
-  let endian = parseInt(spectra.info.$BYTORDA, 10);
+  let endian = parseInt(spectra.meta.BYTORDA, 10);
   endian = endian ? 0 : 1;
 
   if (endian) {
@@ -369,7 +370,7 @@ function setFIDSpectrumData(file, spectra) {
     file.setBigEndian();
   }
 
-  let nbSubSpectra = spectra.info.nbSubSpectra ? spectra.info.nbSubSpectra : 1;
+  let nbSubSpectra = spectra.meta.nbSubSpectra ? spectra.meta.nbSubSpectra : 1;
   spectra.spectra = new Array(nbSubSpectra);
 
   for (let j = 0; j < nbSubSpectra / 2; j++) {
@@ -379,13 +380,13 @@ function setFIDSpectrumData(file, spectra) {
       nbPoints: td,
       firstX: 0,
       lastX: AQ,
-      nucleus: spectra.info.$NUC1 ? spectra.info.$NUC1 : undefined,
+      nucleus: spectra.meta.NUC1 ? spectra.meta.NUC1 : undefined,
       xUnit: 'Sec',
       yUnit: 'Arbitrary',
       data: [new Array(2 * td)], // [{x:new Array(td),y:new Array(td)}],
       isXYdata: true,
       observeFrequency: SF,
-      title: spectra.info.TITLE,
+      title: spectra.meta.TITLE,
       deltaX: DW,
     };
     spectra.spectra[j * 2] = toSave;
@@ -396,13 +397,13 @@ function setFIDSpectrumData(file, spectra) {
       nbPoints: td,
       firstX: 0,
       lastX: AQ,
-      nucleus: spectra.info.$NUC1 ? spectra.info.$NUC1 : undefined,
+      nucleus: spectra.meta.NUC1 ? spectra.meta.NUC1 : undefined,
       xUnit: 'Sec',
       yUnit: 'Arbitrary',
       data: new Array(2 * td),
       isXYdata: true,
       directFrequency: SF,
-      title: spectra.info.TITLE,
+      title: spectra.meta.TITLE,
       deltaX: DW,
     };
     spectra.spectra[j * 2 + 1] = toSave;
