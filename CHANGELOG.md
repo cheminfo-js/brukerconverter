@@ -5,6 +5,15 @@
 
 * fix reverse reading of imaginary data ([c7ec650](https://github.com/cheminfo/brukerconverter/commit/c7ec6509a234c261496c3f9c9d46c487a9a7e8a8))
 
+### [3.1.1](https://www.github.com/cheminfo/brukerconverter/compare/v3.1.0...v3.1.1) (2021-03-06)
+
+
+### Bug Fixes
+
+* add dist in gitignore ([9c1165c](https://www.github.com/cheminfo/brukerconverter/commit/9c1165c819555765f303e380a6f1c9db05aac0ba))
+* remove .npmignore and publish lib and src ([7ab773e](https://www.github.com/cheminfo/brukerconverter/commit/7ab773e4a6d70e87878d1db4b31aa1b7980d06c0))
+* remove coverage from github ([84f062c](https://www.github.com/cheminfo/brukerconverter/commit/84f062c48ef25822ab575b0a033f43031960e6c7))
+
 ## [3.0.0](https://github.com/cheminfo/brukerconverter/compare/v2.1.2...v3.0.0) (2020-07-05)
 
 ### [2.1.2](https://github.com/cheminfo/brukerconverter/compare/v2.1.1...v2.1.2) (2020-04-30)
@@ -57,4 +66,3 @@
 * **convert2D:** Convert2D for 2rr files added. ([7749388](https://github.com/cheminfo/brukerconverter/commit/77493884b003a44b8407006a9f26f0ce0ae78807))
 * **parseData:** added with test. ([6e13ffa](https://github.com/cheminfo/brukerconverter/commit/6e13ffaa619800fc258241c49f6a27caeea80beb))
 * **zip:** now support a several bruker files in a zip. ([45125e2](https://github.com/cheminfo/brukerconverter/commit/45125e25a96dfeceb8fb56c07c69ef7c1c801eb9))
-
