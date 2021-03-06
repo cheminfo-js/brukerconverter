@@ -324,7 +324,7 @@ function setXYSpectrumData(file, spectra, store, real) {
         x += deltaX;
       }
     } else {
-      for (let k = td - 1; k >= 0; --k) {
+      for (let k = 0; k < td; ++k) {
         toSave.data[2 * k] = x;
         toSave.data[2 * k + 1] = file.readInt32();
         if (toSave.data[2 * k + 1] === null || isNaN(toSave.data[2 * k + 1])) {
