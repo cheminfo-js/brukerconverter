@@ -4,10 +4,10 @@
   "description": "Parse and convert Bruker raw data",
   "main": "lib/index.js",
   "module": "src/index.js",
-  "directories": {
-    "lib": "src",
-    "test": "test"
-  },
+  "files": [
+    "lib",
+    "src"
+  ],
   "scripts": {
     "build": "cheminfo-build --entry src/index.js --root BrukerConverter",
     "eslint": "eslint src",
