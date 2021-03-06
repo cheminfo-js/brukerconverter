@@ -25,12 +25,12 @@
     "bruker",
     "converter"
   ],
-  "repository": "cheminfo-js/brukerconverter",
+  "repository": "cheminfo/brukerconverter",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/cheminfo-js/brukerconverter/issues"
+    "url": "https://github.com/cheminfo/brukerconverter/issues"
   },
-  "homepage": "https://github.com/cheminfo-js/brukerconverter",
+  "homepage": "https://github.com/cheminfo/brukerconverter",
   "devDependencies": {
     "@babel/plugin-transform-modules-commonjs": "^7.10.4",
     "@types/jest": "^25.2.3",

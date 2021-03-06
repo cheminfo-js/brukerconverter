@@ -1,7 +1,7 @@
 /**
  * brukerconverter - Parse and convert Bruker raw data
  * @version v3.0.0
- * @link https://github.com/cheminfo-js/brukerconverter
+ * @link https://github.com/cheminfo/brukerconverter
  * @license MIT
  */
 (function (global, factory) {
