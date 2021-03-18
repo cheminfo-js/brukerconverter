@@ -213,6 +213,7 @@ function convert2D(files, options) {
     ? parseInt(result.meta.SI[1], 10)
     : parseInt(result.meta.TD[1], 10);
 
+  // eslint-disable-next-line camelcase
   if (!result.meta.SW_p) result.meta.SW_p = result.meta.SW_h;
   if (!result.meta.SF) result.meta.SF = result.meta.SFO1;
 
