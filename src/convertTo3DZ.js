@@ -39,14 +39,21 @@ export default function convertTo3DZ(spectra) {
     z.reverse();
   }
 
+  let minMaxX =
+    firstX < lastX
+      ? { minX: firstX, maxX: lastX }
+      : { minX: lastX, maxX: firstX };
+  let minMaxY =
+    firstY < lastY
+      ? { minY: firstY, maxY: lastY }
+      : { minY: lastY, maxY: firstY };
+
   return {
     z,
-    minX: Math.min(firstX, lastX),
-    maxX: Math.max(firstX, lastX),
-    minY: Math.min(firstY, lastY),
-    maxY: Math.max(firstY, lastY),
     minZ: minZ,
     maxZ: maxZ,
+    ...minMaxX,
+    ...minMaxY,
     noise: noise / ((ySize - 1) * (xSize - 1) * 2),
   };
 }

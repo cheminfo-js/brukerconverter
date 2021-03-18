@@ -98,24 +98,19 @@ export function convertFolder(brukerFiles, options) {
   //normalizing info
   result.meta.DATE = parseFloat(result.meta.DATE);
   if (result.meta.GRPDLY) {
-    result.meta.GRPDLY = parseFloat(result.meta.GRPDLY[0]);
-    result.meta.DSPFVS = parseFloat(result.meta.DSPFVS[0]);
-    result.meta.DECIM = parseFloat(result.meta.DECIM[0]);
+    result.meta.GRPDLY = parseFloat(result.meta.GRPDLY);
+    result.meta.DSPFVS = parseFloat(result.meta.DSPFVS);
+    result.meta.DECIM = parseFloat(result.meta.DECIM);
   }
 
   for (let key in result.meta) {
     if (!Array.isArray(result.meta[key])) continue;
-
-    if (key.indexOf('$') > -1) {
-      if (result.meta[key].length === 1) {
-        result.info[key] = result.info[key][0];
-      } else if (
-        typeof result.meta[key][0] === 'string' &&
-        result.meta[key][0].indexOf('(0..') > -1
-      ) {
-        result.meta[key] = result.meta[key][0];
-      }
-    } else {
+    if (result.meta[key].length === 1) {
+      result.meta[key] = result.meta[key][0];
+    } else if (
+      typeof result.meta[key][0] === 'string' &&
+      result.meta[key][0].indexOf('(0..') > -1
+    ) {
       result.meta[key] = result.meta[key][0];
     }
   }
@@ -193,30 +188,13 @@ function convert2D(files, options) {
   if (files.proc2s && files.procs) {
     result = parseData(files.procs, options);
     temp = parseData(files.proc2s, options);
-    for (let key in temp.meta) {
-      if (result.meta[key]) {
-        if (!Array.isArray(result.meta[key])) {
-          result.meta[key] = [result.meta[key]];
-        }
-        result.meta[key].push(temp.meta[key]);
-      } else if (result.meta[key] === undefined) {
-        result.meta[key] = [temp.meta[key]];
-      }
-    }
+    result = mergeMetadata(result, temp);
   }
 
   temp = parseData(files.acqus, options);
   temp2 = parseData(files.acqu2s, options);
-  for (let key in temp2.meta) {
-    if (temp.info[key]) {
-      if (!Array.isArray(temp.meta[key])) {
-        temp.meta[key] = [temp.meta[key]];
-      }
-      temp.meta[key].push(temp2.meta[key]);
-    } else if (temp.meta[key] === undefined) {
-      temp.meta[key] = [temp2.meta[key]];
-    }
-  }
+
+  temp = mergeMetadata(temp, temp2);
 
   if (!result) result = temp;
   for (let key in temp.meta) {
@@ -230,42 +208,56 @@ function convert2D(files, options) {
       result.meta[key] = [result.meta[key]];
     }
   }
-  result.info.nbSubSpectra = files['2rr']
-    ? parseInt(result.meta.SI, 10)
-    : parseInt(result.meta.TD, 10);
+
+  result.meta.nbSubSpectra = files['2rr']
+    ? parseInt(result.meta.SI[1], 10)
+    : parseInt(result.meta.TD[1], 10);
 
   if (!result.meta.SW_p) result.meta.SW_p = result.meta.SW_h;
   if (!result.meta.SF) result.meta.SF = result.meta.SFO1;
 
+  let firstY, lastY, xOffset, yOffset;
   if (files['2rr']) {
     let sf = parseFloat(result.meta.SF[1]);
     let swP = parseFloat(result.meta.SW_p[1] || result.meta.SW[1]);
-    let offset = parseFloat(result.meta.OFFSET[1]);
-
-    let firstY = offset;
-    let lastY = offset - swP / sf;
+    yOffset = parseFloat(result.meta.OFFSET[1]);
+    xOffset = parseFloat(result.meta.OFFSET[0]);
+    firstY = yOffset;
+    lastY = yOffset - swP / sf;
     result.meta.firstY = firstY;
     result.meta.lastY = lastY;
-    let nbSubSpectra = result.meta.nbSubSpectra;
-
-    let pageValue = result.meta.firstY;
-    let deltaY = (result.meta.lastY - result.meta.firstY) / (nbSubSpectra - 1);
-    for (let i = 0; i < nbSubSpectra; i++) {
-      pageValue += deltaY;
-      result.spectra[i].pageValue = pageValue;
-    }
     setXYSpectrumData(files['2rr'], result, true);
-    result.info['2D_Y_OFFSET'] = offset;
-    result.info['2D_X_OFFSET'] = result.meta.OFFSET[0];
   } else if (files.ser) {
+    firstY = 0;
+    lastY = result.meta.nbSubSpectra;
+    let xWindowSize = parseFloat(result.meta.SW[0]);
+    let yWindowSize = parseFloat(result.meta.SW[1]);
+    let xTransmitterFrequency = parseFloat(result.meta.SFO1[0]);
+    let yTransmitterFrequency = parseFloat(result.meta.SFO1[1]);
+    let xTransmitterFrequencyOffset = parseFloat(result.meta.O1[0]);
+    let yTransmitterFrequencyOffset = parseFloat(result.meta.O1[1]);
+    xOffset =
+      xTransmitterFrequencyOffset / xTransmitterFrequency + xWindowSize / 2;
+    yOffset =
+      yTransmitterFrequencyOffset / yTransmitterFrequency + yWindowSize / 2;
     setFIDSpectrumData(files.ser, result);
   }
 
-  result.info['2D_Y_NUCLEUS'] = result.meta.NUC2;
-  result.info['2D_X_NUCLEUS'] = result.meta.NUC1;
-  result.info['2D_Y_FRECUENCY'] = result.meta.SF[1];
-  result.info['2D_X_FRECUENCY'] = result.meta.SF[0];
-
+  let pageValue = firstY;
+  let nbSubSpectra = result.meta.nbSubSpectra;
+  let deltaY = (lastY - firstY) / (nbSubSpectra - 1);
+  for (let i = 0; i < nbSubSpectra; i++) {
+    pageValue += deltaY;
+    result.spectra[i].pageValue = pageValue;
+  }
+  let { NUC1: nuc1, AXNUC: axnuc, SF: sf } = result.meta;
+  const nucleus = axnuc ? axnuc : nuc1 ? nuc1 : [];
+  result.info['2D_Y_NUCLEUS'] = nucleus[1];
+  result.info['2D_X_NUCLEUS'] = nucleus[0];
+  result.info['2D_Y_FRECUENCY'] = sf[1];
+  result.info['2D_X_FRECUENCY'] = sf[0];
+  result.info['2D_Y_OFFSET'] = yOffset;
+  result.info['2D_X_OFFSET'] = xOffset;
   result.info.twoD = result.twoD = true;
 
   return result;
@@ -273,11 +265,10 @@ function convert2D(files, options) {
 
 function setXYSpectrumData(file, spectra, real) {
   file = ensureIOBuffer(file);
-  let td = parseInt(spectra.meta.SI[0], 10);
-  let swP = parseFloat(spectra.meta.SWP);
+  let td = parseInt(spectra.meta.SI, 10);
+  let swP = parseFloat(spectra.meta.SW_p);
   let sf = parseFloat(spectra.meta.SF);
   let bf = sf;
-
   let offset = spectra.shiftOffsetVal || parseFloat(spectra.meta.OFFSET);
 
   spectra.meta.observeFrequency = sf;
@@ -348,18 +339,17 @@ function parseData(file, options) {
 
 function setFIDSpectrumData(file, spectra) {
   file = ensureIOBuffer(file);
-  let td = (spectra.meta.TD[0] = parseInt(spectra.meta.TD[0], 10));
-  let SW_H = (spectra.meta.SWH = parseFloat(spectra.meta.SW_h[0]));
+  let td = parseInt(spectra.meta.TD[0], 10);
+  let SW_H = parseFloat(spectra.meta.SW_h[0]);
 
-  let SF = (spectra.meta.SFO1 = parseFloat(spectra.meta.SFO1));
-  let BF = parseFloat(spectra.meta.BF1);
-  spectra.meta.BF1 = BF;
+  let SF = parseFloat(spectra.meta.SFO1[0]);
+
   spectra.meta.DATATYPE = 'NMR FID';
 
   let DW = 1 / (2 * SW_H);
   let AQ = td * DW;
 
-  let endian = parseInt(spectra.meta.BYTORDA[0], 10);
+  let endian = parseInt(spectra.meta.BYTORDA, 10);
   endian = endian ? 0 : 1;
 
   if (endian) {
@@ -378,7 +368,7 @@ function setFIDSpectrumData(file, spectra) {
       nbPoints: td,
       firstX: 0,
       lastX: AQ,
-      nucleus: spectra.meta.NUC1 ? spectra.meta.NUC1 : undefined,
+      nucleus: spectra.meta.NUC1,
       xUnit: 'Sec',
       yUnit: 'Arbitrary',
       data: [new Array(2 * td)], // [{x:new Array(td),y:new Array(td)}],
@@ -395,7 +385,7 @@ function setFIDSpectrumData(file, spectra) {
       nbPoints: td,
       firstX: 0,
       lastX: AQ,
-      nucleus: spectra.meta.NUC1 ? spectra.meta.NUC1 : undefined,
+      nucleus: spectra.meta.NUC1,
       xUnit: 'Sec',
       yUnit: 'Arbitrary',
       data: new Array(2 * td),
@@ -448,4 +438,18 @@ function ensureIOBuffer(data) {
     return new IOBuffer(data);
   }
   return data;
+}
+
+function mergeMetadata(main, complement) {
+  for (let key in complement.meta) {
+    if (main.meta[key]) {
+      if (!Array.isArray(main.meta[key])) {
+        main.meta[key] = [main.meta[key]];
+      }
+      main.meta[key].push(complement.meta[key]);
+    } else if (main.meta[key] === undefined) {
+      main.meta[key] = [complement.meta[key]];
+    }
+  }
+  return main;
 }
