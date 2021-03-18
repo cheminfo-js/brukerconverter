@@ -5,6 +5,13 @@
 
 * fix reverse reading of imaginary data ([c7ec650](https://github.com/cheminfo/brukerconverter/commit/c7ec6509a234c261496c3f9c9d46c487a9a7e8a8))
 
+## [3.2.0](https://www.github.com/cheminfo/brukerconverter/compare/v3.1.1...v3.2.0) (2021-03-18)
+
+
+### Features
+
+* upgrade jcampconverter to 7.7.0 ([#18](https://www.github.com/cheminfo/brukerconverter/issues/18)) ([f55262a](https://www.github.com/cheminfo/brukerconverter/commit/f55262a89bb054e80e089fcd784c33de82322e02))
+
 ### [3.1.1](https://www.github.com/cheminfo/brukerconverter/compare/v3.1.0...v3.1.1) (2021-03-06)
 
 
