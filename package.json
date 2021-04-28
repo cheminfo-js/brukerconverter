@@ -33,7 +33,7 @@
   "homepage": "https://github.com/cheminfo/brukerconverter",
   "devDependencies": {
     "@babel/plugin-transform-modules-commonjs": "^7.13.8",
-    "@types/jest": "^26.0.20",
+    "@types/jest": "^26.0.23",
     "bruker-data-test": "0.1.0",
     "cheminfo-build": "^1.1.10",
     "eslint": "^7.25.0",
