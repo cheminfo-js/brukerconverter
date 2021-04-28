@@ -3,12 +3,14 @@ import { convert as convertJcamp } from 'jcampconverter';
 import JSZip from 'jszip/dist/jszip';
 
 import convertTo3DZ from './convertTo3DZ';
+import { extractSingleSpectrumZip } from './extractSingleSpectrumZip';
 import generateContourLines from './generateContourLines';
 
 const BINARY = 1;
 const TEXT = 2;
 
 export function convertZip(zipFile, options = {}) {
+  const { keepZip = false } = options;
   const jsZip = new JSZip();
 
   return jsZip.loadAsync(zipFile, options).then((zip) => {
@@ -68,12 +70,19 @@ export function convertZip(zipFile, options = {}) {
           promises.push(currFiles[j].async('string'));
         }
       }
+      if (keepZip) {
+        promises.push('file');
+        promises.push(
+          extractSingleSpectrumZip(folders[i].name, { zipFiles: zip.files }),
+        );
+      }
       spectra[i] = Promise.all(promises).then((result) => {
         let brukerFiles = {};
         for (let k = 1; k < result.length; k += 2) {
           name = result[k];
           brukerFiles[name] = result[k + 1];
         }
+
         return {
           filename: result[0],
           value: convertFolder(brukerFiles, options),
@@ -150,6 +159,8 @@ export function convertFolder(brukerFiles, options) {
       }
     }
   }
+
+  if (brukerFiles.file) result.source = { file: brukerFiles.file };
 
   return result;
 }
