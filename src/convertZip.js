@@ -6,8 +6,15 @@ import { extractSingleSpectrumZip } from './util/extractSingleSpectrumZip';
 const BINARY = 1;
 const TEXT = 2;
 
+/**
+ * Load a zip file using jszip and looking for folders contaning bruker files to parse.
+ * @param {*} zipFile - binary or base64 file of the bruker zip file.
+ * @param {object} [options={}] - options for jszip and convertFolder functions.
+ * @param {boolean} [options.keepOriginal=false] - options to keep a smaller zip file per spectrum.
+ * @returns {Promise} - Array of spectrum parsed from fid, ser, 2rr, 1r bruker files.
+ */
 export function convertZip(zipFile, options = {}) {
-  const { keepZip = false } = options;
+  const { keepOriginal = false } = options;
   const jsZip = new JSZip();
 
   return jsZip.loadAsync(zipFile, options).then((zip) => {
@@ -67,7 +74,7 @@ export function convertZip(zipFile, options = {}) {
           promises.push(currFiles[j].async('string'));
         }
       }
-      if (keepZip) {
+      if (keepOriginal) {
         promises.push('file');
         promises.push(
           extractSingleSpectrumZip(folders[i].name, { zipFiles: zip.files }),

@@ -1,10 +1,7 @@
 import { convert as convertJcamp } from 'jcampconverter';
 
 export function parseData(file, options) {
-  let keepRecordsRegExp = /.*/;
-  if (options.keepRecordsRegExp) {
-    keepRecordsRegExp = options.keepRecordsRegExp;
-  }
+  let { keepRecordsRegExp = /.*/ } = options;
   let result = convertJcamp(file, {
     keepRecordsRegExp: keepRecordsRegExp,
   });

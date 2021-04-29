@@ -2,6 +2,16 @@ import { add2D } from './util/add2D';
 import { convert1D } from './util/convert1D';
 import { convert2D } from './util/convert2D';
 
+/**
+ * Extract information and data from bruker files.
+ * @param {object} brukerFiles - Needed bruker files to parse raw data.
+ * @param {object} [options = {}] - options.
+ * @param {boolean} [options.xy] - if true, spectra data is a object with x and y
+ * @param {RegExp} [options.keepRecordsRegExp='\/.*\/'] - regular expresion to parse the metadata of the spectrum.
+ * @param {boolean} [options.noContours=false] - if true the contour data is not generated.
+ * @returns
+ */
+
 export function convertFolder(brukerFiles, options = {}) {
   let start = new Date();
   let result;
@@ -69,9 +79,9 @@ export function convertFolder(brukerFiles, options = {}) {
       }
     }
   }
-
-  if (brukerFiles.file) {
-    result.source = { file: brukerFiles.file };
+  const { file } = brukerFiles;
+  if (file) {
+    result.source = { file };
   }
 
   return result;
