@@ -5,6 +5,15 @@
 
 * fix reverse reading of imaginary data ([c7ec650](https://github.com/cheminfo/brukerconverter/commit/c7ec6509a234c261496c3f9c9d46c487a9a7e8a8))
 
+## [3.3.0](https://www.github.com/cheminfo/brukerconverter/compare/v3.2.0...v3.3.0) (2021-04-29)
+
+
+### Features
+
+* **keepZip:** add option to keep zip binary file per each spectrum ([b2554bf](https://www.github.com/cheminfo/brukerconverter/commit/b2554bf5b0b13624fb370c6c6b425ce0b7eb1e1c))
+* one file one function and documentation ([#25](https://www.github.com/cheminfo/brukerconverter/issues/25)) ([0e09fad](https://www.github.com/cheminfo/brukerconverter/commit/0e09fad20c32182ac572458022eeec2e4df5fe5a))
+* update dependencies ([67cb30e](https://www.github.com/cheminfo/brukerconverter/commit/67cb30e57dbf3f2fb63ba9b13da62a9332f992ab))
+
 ## [3.2.0](https://www.github.com/cheminfo/brukerconverter/compare/v3.1.1...v3.2.0) (2021-03-18)
 
 
