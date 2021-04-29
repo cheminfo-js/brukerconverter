@@ -93,8 +93,7 @@ export function convertZip(zipFile, options = {}) {
   });
 }
 
-export function convertFolder(brukerFiles, options) {
-  options = options || {};
+export function convertFolder(brukerFiles, options = {}) {
   let start = new Date();
   let result;
   if (brukerFiles.ser || brukerFiles['2rr']) {
