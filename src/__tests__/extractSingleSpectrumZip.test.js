@@ -1,4 +1,4 @@
-import { extractFilePaths } from '../extractSingleSpectrumZip';
+import { extractFilePaths } from '../util/extractSingleSpectrumZip';
 
 const file1 = [
   'cyclosporin_1h/',
