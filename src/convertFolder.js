@@ -50,15 +50,15 @@ export function convertFolder(brukerFiles, options = {}) {
   let spectra = result.spectra;
 
   if (options.xy && !!spectra) {
-    //the spectraData should not be a oneD array but an object with x and y
+    //the spectraData should not be a oneD Array but an object with x and y
     if (spectra.length > 0) {
       for (let i = 0; i < spectra.length; i++) {
         let spectrum = spectra[i];
         if (spectrum.data.length) {
           let data = spectrum.data;
           let newData = {
-            x: new Array(data.length / 2),
-            y: new Array(data.length / 2),
+            x: new Float64Array(data.length / 2),
+            y: new Float64Array(data.length / 2),
           };
           for (let k = 0; k < data.length; k = k + 2) {
             newData.x[k / 2] = data[k];

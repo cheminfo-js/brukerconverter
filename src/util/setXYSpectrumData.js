@@ -31,7 +31,7 @@ export function setXYSpectrumData(file, spectra, real) {
       lastX: offset - swP / sf,
       xUnit: 'PPM',
       yUnit: 'Arbitrary',
-      data: new Array(td * 2),
+      data: new Float64Array(td * 2),
       isXYdata: true,
       observeFrequency: sf,
       title: spectra.meta.TITLE,

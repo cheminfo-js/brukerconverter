@@ -12,7 +12,7 @@ export default function convertTo3DZ(spectra) {
   let xSize = spectra[0].data.length / 2;
   let z = new Array(ySize);
   for (let i = 0; i < ySize; i++) {
-    z[i] = new Array(xSize);
+    z[i] = new Float64Array(xSize);
     for (let j = 0; j < xSize; j++) {
       z[i][j] = spectra[i].data[j * 2 + 1];
       if (z[i][j] < minZ) minZ = spectra[i].data[j * 2 + 1];
