@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset='utf-8'>
-  <title>brukerconverter 3.1.0 | Documentation</title>
+  <title>brukerconverter 3.3.0 | Documentation</title>
   <meta name='description' content='Parse and convert Bruker raw data'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <link href='assets/bass.css' rel='stylesheet'>
@@ -15,7 +15,7 @@
       <div id='split-left' class='overflow-auto fs0 height-viewport-100'>
         <div class='py1 px2'>
           <h3 class='mb0 no-anchor'>brukerconverter</h3>
-          <div class='mb1'><code>3.1.0</code></div>
+          <div class='mb1'><code>3.3.0</code></div>
           <input
             placeholder='Filter'
             id='filter-input'
@@ -29,9 +29,29 @@
               
                 
                 <li><a
+                  href='#convertfolder'
+                  class="">
+                  convertFolder
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
                   href='#convertto3dz'
                   class="">
                   convertTo3DZ
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
+                  href='#convertzip'
+                  class="">
+                  convertZip
                   
                 </a>
                 
@@ -52,13 +72,138 @@
   
   <div class='clearfix'>
     
+    <h3 class='fl m0' id='convertfolder'>
+      convertFolder
+    </h3>
+    
+    
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/cheminfo/brukerconverter/blob/575d1d630a0bd987b9379126d832363c81e9127d/src/convertFolder.js#L15-L88'>
+      <span>src/convertFolder.js</span>
+      </a>
+    
+  </div>
+  
+
+  <p>Extract information and data from bruker files.</p>
+
+    <div class='pre p1 fill-light mt0'>convertFolder(brukerFiles: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">object</a>, options: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">object</a>)</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>brukerFiles</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">object</a>)</code>
+	    Needed bruker files to parse raw data.
+
+          </div>
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>options</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">object</a>
+            = <code>{}</code>)</code>
+	    options.
+
+          </div>
+          
+          <table class='mt1 mb2 fixed-table h5 col-12'>
+            <colgroup>
+              <col width='30%' />
+              <col width='70%' />
+            </colgroup>
+            <thead>
+              <tr class='bold fill-light'>
+                <th>Name</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody class='mt1'>
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>options.xy</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?</code>
+  </td>
+  <td class='break-word'><span>if true, spectra data is a object with x and y
+</span></td>
+</tr>
+
+
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>options.keepRecordsRegExp</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp">RegExp</a></code>
+  
+    (default <code>&#39;\/.*\/&#39;</code>)
+  </td>
+  <td class='break-word'><span>regular expresion to parse the metadata of the spectrum.
+</span></td>
+</tr>
+
+
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>options.noContours</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>false</code>)
+  </td>
+  <td class='break-word'><span>if true the contour data is not generated.
+</span></td>
+</tr>
+
+
+              
+            </tbody>
+          </table>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
     <h3 class='fl m0' id='convertto3dz'>
       convertTo3DZ
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/cheminfo/brukerconverter/blob/5ae5deffbec2f5872d5a97378c8ad37d07c0e89f/src/convertTo3DZ.js#L7-L52'>
-      <span>src/convertTo3DZ.js</span>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/cheminfo/brukerconverter/blob/575d1d630a0bd987b9379126d832363c81e9127d/src/util/convertTo3DZ.js#L7-L59'>
+      <span>src/util/convertTo3DZ.js</span>
       </a>
     
   </div>
@@ -99,6 +244,119 @@
       <div class='py1 quiet mt1 prose-big'>Returns</div>
       <code>{z: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array">Array</a>, minX: any, maxX: any, minY: any, maxY: any, minZ: any, maxZ: any, noise: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>}</code>:
         
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
+    <h3 class='fl m0' id='convertzip'>
+      convertZip
+    </h3>
+    
+    
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/cheminfo/brukerconverter/blob/575d1d630a0bd987b9379126d832363c81e9127d/src/convertZip.js#L16-L98'>
+      <span>src/convertZip.js</span>
+      </a>
+    
+  </div>
+  
+
+  <p>Load a zip file using jszip and looking for folders contaning bruker files to parse.</p>
+
+    <div class='pre p1 fill-light mt0'>convertZip(zipFile: any, options: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">object</a>): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a></div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>zipFile</span> <code class='quiet'>(any)</code>
+	    binary or base64 file of the bruker zip file.
+
+          </div>
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>options</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">object</a>
+            = <code>{}</code>)</code>
+	    options for jszip and convertFolder functions.
+
+          </div>
+          
+          <table class='mt1 mb2 fixed-table h5 col-12'>
+            <colgroup>
+              <col width='30%' />
+              <col width='70%' />
+            </colgroup>
+            <thead>
+              <tr class='bold fill-light'>
+                <th>Name</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody class='mt1'>
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>options.keepOriginal</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>false</code>)
+  </td>
+  <td class='break-word'><span>options to keep a smaller zip file per spectrum.
+</span></td>
+</tr>
+
+
+              
+            </tbody>
+          </table>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a></code>:
+        Array of spectrum parsed from fid, ser, 2rr, 1r bruker files.
 
       
     
