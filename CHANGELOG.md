@@ -1,5 +1,13 @@
 # Changelog
 
+### [3.3.1](https://www.github.com/cheminfo/brukerconverter/compare/v3.3.0...v3.3.1) (2021-05-03)
+
+
+### Bug Fixes
+
+* change log ([575d1d6](https://www.github.com/cheminfo/brukerconverter/commit/575d1d630a0bd987b9379126d832363c81e9127d))
+* README.md ([c674616](https://www.github.com/cheminfo/brukerconverter/commit/c674616df126ed34d9877517d034624d4a7eb624))
+
 ## [3.3.0](https://www.github.com/cheminfo/brukerconverter/compare/v3.2.0...v3.3.0) (2021-04-29)
 
 ### Feature
