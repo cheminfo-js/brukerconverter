@@ -1,63 +1,37 @@
 #brukerconverter
 
-[![NPM version][npm-image]][npm-url]
-[![build status][travis-image]][travis-url]
-[![David deps][david-image]][david-url]
-[![npm download][download-image]][download-url]
+It is able to extract NMR spectra from a zip file that contain the bruker folders.
 
-Installation
----------------
+## Installation
 
 ### Node JS
+
 ```
 npm install brukerconverter
 ```
 
-### Bower
-```
-bower install brukerconverter
-```
-
-Methods
----------------
-
-### convert(jcamp, [options], [useWorker])
-
-Converts the `jcamp` using `options`.
-
-__Arguments__
-
-* `jcamp` - String containing the JCAMP data
-* `options` - Object with options to pass to the converter
-* `useWorker` - Browser only: convert in a web worker (default: false). If this option is set to true, it will return a [Promise](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Promise).
-
-__Options__
-
-* keepSpectra - Generate array for 2D NMR spectra (default: false)
-
 ### Use as a module
 
 ####Node JS
+As brukerconverter uses jszip to load the zip binary, the method returns a promise. You need the zip file loaded in memory as arrayBuffer or base64 passing option base64 with a boolean value of ```true```.
+
 ```javascript
-var converter = require('jcampconverter');
-var jcamp = require('fs').readFileSync('path/to/jcamp.dx').toString();
+const { convertZip } = require('brukerconverter');
+const { bruker } = require('bruker-data-test');
 
-var result = converter.convert(jcamp);
+convertZip(bruker['aspirin-1h.zip'], { keepOriginal: true, xy: true })
+  .then((result) => {
+    console.log(result);
+    //...{ spectra, meta, source }
+  });
 ```
-
-#### AMD
+It is possible to use the converter if you have the files already loaded in memory as an ```object```.
 ```javascript
-require(['jcampconverter'], function(JcampConverter) {
-    // Use the worker
-    JcampConverter.convert(jcamp, true).then(function (result) {
-        // Do something with result
-    });
-});
+const { convertFolder } = require('brukerconverter');
+
+let result = convertFolder(brukerFiles, { keepOriginal: true, xy: true});
+console.log(result);
+//...{ spectra, meta, source }
 ```
 
-Testing and build
----------------
-```
-npm install
-grunt
-```
+## [API Documentation](https://cheminfo.github.io/brukerconverter/)
