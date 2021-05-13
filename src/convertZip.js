@@ -1,4 +1,4 @@
-import JSZip from 'jszip/dist/jszip';
+import JSZip from 'jszip';
 
 import { convertFolder } from './convertFolder';
 import { extractSingleSpectrumZip } from './util/extractSingleSpectrumZip';
