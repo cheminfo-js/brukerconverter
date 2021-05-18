@@ -13,6 +13,8 @@
     "eslint": "eslint src",
     "eslint-fix": "npm run eslint -- --fix",
     "prepublishOnly": "rollup -c",
+    "prettier": "prettier --check src",
+    "prettier-write": "prettier --write src",
     "test": "run-s test-coverage eslint",
     "test-only": "jest",
     "test-coverage": "jest --coverage"
