@@ -23,7 +23,8 @@ export function extractFilePaths(pathSpectrum, options = {}) {
         : null;
 
     if (expnoCheck !== expno) continue;
-    if (file.match(/pdata/)) {
+
+    if (file.match('pdata')) {
       let procno = file.slice(0, file.lastIndexOf('/') + 1);
       if (!procnoCheck) {
         if (file.match(/[1|2]+[i|r]+[i|r]*/)) continue;

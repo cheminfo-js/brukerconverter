@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.0](https://www.github.com/cheminfo/brukerconverter/compare/v3.4.0...v3.5.0) (2021-05-18)
+
+
+### Features
+
+* avoid assertions when extract single spectrum from zip. close [#28](https://www.github.com/cheminfo/brukerconverter/issues/28) ([#29](https://www.github.com/cheminfo/brukerconverter/issues/29)) ([7ede8de](https://www.github.com/cheminfo/brukerconverter/commit/7ede8de7e04ae3a1e8de8fa49c2b102af2d4125b))
+
 ## [3.4.0](https://www.github.com/cheminfo/brukerconverter/compare/v3.3.0...v3.4.0) (2021-05-13)
 
 
