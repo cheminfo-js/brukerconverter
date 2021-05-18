@@ -10,30 +10,28 @@ export function extractFilePaths(pathSpectrum, options = {}) {
 
   const procnoCheck = pathSpectrum.match('pdata')
     ? pathSpectrum.replace(/([.*\w+/]*[0-9]+\/pdata\/[0-9]+\/)*.*/, '$1')
-    : null;
-
+    : false;
   let filePaths = [];
   for (let file in zipFiles) {
-    if (
-      expnoCheck !== file.replace(/([.*/]*)((?<!pdata\/)[0-9]+\/).*/, '$1$2')
-    ) {
-      continue;
-    }
+    if (file.endsWith('/')) continue;
+    let parts = file.split('/');
+    let expno =
+      parts.indexOf('pdata') > 0
+        ? file.slice(0, file.indexOf('pdata'))
+        : parts[parts.length - 2].match(/^[0-9]+$/)
+        ? file.slice(0, file.lastIndexOf('/') + 1)
+        : null;
 
-    if (file.match('pdata')) {
+    if (expnoCheck !== expno) continue;
+    if (file.match(/pdata/)) {
+      let procno = file.slice(0, file.lastIndexOf('/') + 1);
       if (!procnoCheck) {
         if (file.match(/[1|2]+[i|r]+[i|r]*/)) continue;
-      } else if (
-        procnoCheck !==
-        file.replace(
-          /([.*\w+/]*)(?<!pdata)([0-9]+\/)[pdata|fid|ser]*\/*.*/,
-          '$1$2',
-        )
-      ) {
+      } else if (procnoCheck !== procno) {
         continue;
       }
     }
-    if (file.endsWith('/')) continue;
+
     filePaths.push(file);
   }
   return filePaths;
@@ -43,7 +41,6 @@ export async function extractSingleSpectrumZip(pathSpectrum, options = {}) {
   let { zipFiles } = options;
 
   const filePaths = extractFilePaths(pathSpectrum, { zipFiles });
-
   let zipFolder = new JSZip();
   for (let file of filePaths) {
     zipFolder.file(file, await zipFiles[file].async('arraybuffer'));
