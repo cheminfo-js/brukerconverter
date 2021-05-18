@@ -1,4 +1,10 @@
-import { extractFilePaths } from '../util/extractSingleSpectrumZip';
+import { bruker } from 'bruker-data-test';
+import Jszip from 'jszip';
+
+import {
+  extractFilePaths,
+  extractSingleSpectrumZip,
+} from '../util/extractSingleSpectrumZip';
 
 const file1 = [
   'cyclosporin_1h/',
@@ -112,6 +118,43 @@ describe('extract file paths', () => {
       '1/uxnmr.par',
       '1/pdata/1/1i',
       '1/pdata/1/1r',
+    ]);
+  });
+});
+
+describe('extract a single spectrum', () => {
+  it('extract a single spectrum from a zip', async () => {
+    const jszip = new Jszip();
+    const zip = await jszip.loadAsync(bruker['cyclosporin_1h.zip'], {
+      base64: true,
+    });
+    let result = await extractSingleSpectrumZip('cyclosporin_1h/1/fid', {
+      zipFiles: zip.files,
+    });
+    const jszip2 = new Jszip();
+    let newZip = await jszip2.loadAsync(result.binary, { base64: true });
+    let files = Object.keys(newZip.files);
+    expect(files).toStrictEqual([
+      'cyclosporin_1h/',
+      'cyclosporin_1h/1/',
+      'cyclosporin_1h/1/acqu',
+      'cyclosporin_1h/1/acqus',
+      'cyclosporin_1h/1/audita.txt',
+      'cyclosporin_1h/1/cyclosporina.pdb',
+      'cyclosporin_1h/1/fid',
+      'cyclosporin_1h/1/format.temp',
+      'cyclosporin_1h/1/pdata/',
+      'cyclosporin_1h/1/pdata/1/',
+      'cyclosporin_1h/1/pdata/1/auditp.txt',
+      'cyclosporin_1h/1/pdata/1/cmcq',
+      'cyclosporin_1h/1/pdata/1/outd',
+      'cyclosporin_1h/1/pdata/1/proc',
+      'cyclosporin_1h/1/pdata/1/procs',
+      'cyclosporin_1h/1/pdata/1/thumb.png',
+      'cyclosporin_1h/1/pdata/1/title',
+      'cyclosporin_1h/1/pulseprogram',
+      'cyclosporin_1h/1/scon2',
+      'cyclosporin_1h/1/uxnmr.par',
     ]);
   });
 });
