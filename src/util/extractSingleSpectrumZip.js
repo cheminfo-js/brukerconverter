@@ -14,26 +14,27 @@ export function extractFilePaths(pathSpectrum, options = {}) {
 
   let filePaths = [];
   for (let file in zipFiles) {
-    if (
-      expnoCheck !== file.replace(/([.*/]*)((?<!pdata\/)[0-9]+\/).*/, '$1$2')
-    ) {
+    if (file.endsWith('/')) continue;
+    let parts = file.split('/');
+    let expno =
+      parts.indexOf('pdata') > 0
+        ? file.slice(0, file.indexOf('pdata'))
+        : parts[parts.length - 2].match(/^[0-9]+$/)
+        ? file.slice(0, file.lastIndexOf('/') + 1)
+        : null;
+    if (expnoCheck !== expno) {
       continue;
     }
 
     if (file.match('pdata')) {
+      let procno = file.slice(0, file.lastIndexOf('/') + 1);
       if (!procnoCheck) {
         if (file.match(/[1|2]+[i|r]+[i|r]*/)) continue;
-      } else if (
-        procnoCheck !==
-        file.replace(
-          /([.*\w+/]*)(?<!pdata)([0-9]+\/)[pdata|fid|ser]*\/*.*/,
-          '$1$2',
-        )
-      ) {
+      } else if (procnoCheck !== procno) {
         continue;
       }
     }
-    if (file.endsWith('/')) continue;
+
     filePaths.push(file);
   }
   return filePaths;
